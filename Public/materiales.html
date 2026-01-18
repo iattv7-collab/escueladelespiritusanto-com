@@ -4,9 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Materiales – La Escuela del Espíritu Santo</title>
-  
+
   <style>
-    /* (UNCHANGED CSS) */
     body {
       margin: 0;
       font-family: system-ui, sans-serif;
@@ -192,7 +191,7 @@
 
     .class-title { font-size:.8rem; }
 
-    .class-actions { display:flex; gap:.35rem; align-items:center; }
+    .class-actions { display:flex; gap:.35rem; align-items:center; flex-wrap: wrap; justify-content: flex-end; }
 
     .small-btn {
       background: rgba(248,250,252,.1);
@@ -203,6 +202,7 @@
       color: #fff;
       text-decoration: none;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .small-btn:hover { background: rgba(248,250,252,.2); }
@@ -261,6 +261,7 @@
       width:30px; height:30px;
       display:flex; align-items:center; justify-content:center;
       cursor:pointer;
+      z-index: 10;
     }
 
     @media (max-width: 840px) {
@@ -328,11 +329,6 @@
   <script type="module">
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    let MODULE_COUNT = 0; // will be loaded from Firestore
-    let CLASSES_PER_MODULE = 0; // per module, loaded from Firestore
-
-    
-
     const IS_DEV = false;
 
     const userEmailSpan = document.getElementById("userEmail");
@@ -343,100 +339,6 @@
     const videoModal = document.getElementById("videoModal");
     const videoFrame = document.getElementById("videoFrame");
     const closeModalBtn = document.getElementById("closeModalBtn");
-
-    /* --------------------------
-       DEV MODE BLOCK (unchanged)
-    --------------------------- */
-
-    if (IS_DEV) {
-      console.warn("🔧 DEV MODE ACTIVE — Firebase disabled, full access.");
-
-      userEmailSpan.textContent = "dev@example.com";
-      loadingMsg.style.display = "none";
-
-      let devSelectedModule = 1;
-
-      function renderSidebarDev() {
-        modulesSidebar.innerHTML = "";
-        for (let m = 1; m <= MODULE_COUNT; m++) {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "module-nav-item active completed";
-          if (m !== devSelectedModule) item.classList.remove("active");
-
-          item.innerHTML = `
-            <span class="module-nav-label">Módulo ${m}</span>
-            <span class="module-nav-status">DEV</span>
-          `;
-
-          item.addEventListener("click", () => {
-            devSelectedModule = m;
-            renderSidebarDev();
-            renderModuleDetailDev(m);
-          });
-
-          modulesSidebar.appendChild(item);
-        }
-      }
-
-      function renderModuleDetailDev(m) {
-        moduleDetail.innerHTML = `
-          <h2>Módulo ${m} (DEV)</h2>
-          <div class="module-subnote">Vista de desarrollo – todo desbloqueado.</div>
-        `;
-
-        const classList = document.createElement("div");
-        classList.className = "class-list";
-
-        for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
-          classList.innerHTML += `
-            <div class="class-item">
-              <div class="class-title">Clase ${c}</div>
-              <div class="class-actions">
-                <button class="small-btn" data-video="${m}-${c}">Ver clase</button>
-                <button class="small-btn" onclick="window.open('./test-${m}-${c}.html','_blank')">Tomar prueba</button>
-              </div>
-            </div>
-          `;
-        }
-        moduleDetail.appendChild(classList);
-      }
-
-      function openVideoModalDev(classKey) {
-        const url = videos[classKey];
-        if (!url) return alert("Esta clase no tiene video.");
-        videoFrame.src = url + (url.includes("?") ? "&autoplay=1" : "?autoplay=1");
-        videoModal.style.display = "flex";
-      }
-
-      /* REQUIRED FIX */
-      window.openVideoModal = openVideoModalDev;
-
-      document.body.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-video]");
-        if (btn) openVideoModalDev(btn.dataset.video);
-      });
-
-      closeModalBtn.addEventListener("click", () => {
-        videoFrame.src = "";
-        videoModal.style.display = "none";
-      });
-
-      videoModal.addEventListener("click", (e) => {
-        if (e.target === videoModal) {
-          videoFrame.src = "";
-          videoModal.style.display = "none";
-        }
-      });
-
-      renderSidebarDev();
-      renderModuleDetailDev(devSelectedModule);
-      throw new Error("DEV_MODE_STOP");
-    }
-
-    /* ------------------------------------------
-       🔥 UPDATED FIREBASE CONFIG + SDK VERSION
-    ------------------------------------------- */
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -451,7 +353,6 @@
       orderBy
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-
     const firebaseConfig = {
       apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
       authDomain: "escuela-ees.firebaseapp.com",
@@ -465,16 +366,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    /* -----------------------
-       MAIN APP FUNCTIONALITY
-    ------------------------ */
-
-    const modulePrices = { 1:25, 2:25, 3:25, 4:25, 5:30, 6:30 };
-
     let currentUser = null;
     let currentProgress = null;
-    let currentVideoKey = null;
-    let selectedModule = 1;
+
+    // modulesData:
+    // [
+    //   { id, title, order, price, classes:[{id,title,order,videoUrl}] , _index }
+    // ]
+    let modulesData = [];
+    let selectedModuleIndex = 1;   // 1..N
+    let currentVideoKey = null;    // "m-c" like "1-1"
+
+    // Optional fallback prices (only used if module.price missing)
+    const modulePricesFallback = { 1:25, 2:25, 3:25, 4:25, 5:30, 6:30 };
 
     function emptyProgress() {
       return {
@@ -505,88 +409,143 @@
       await setDoc(doc(db, "userProgress", uid), data, { merge: true });
     }
 
-    let modulesData = []; // [{id,title,order,price,classes:[{id,title,order,videoUrl}]}]
+    async function loadModulesFromFirestore() {
+      let modsSnap;
+      try {
+        modsSnap = await getDocs(query(collection(db, "modules"), orderBy("order", "asc")));
+      } catch (e) {
+        // fallback if "order" field doesn't exist in some environments
+        modsSnap = await getDocs(collection(db, "modules"));
+      }
 
-async function loadModulesFromFirestore() {
-  // Firestore structure expected:
-  // modules (collection)
-  //   moduleDoc (title, order, price)
-  //   modules/<moduleId>/classes (subcollection)
-  //     classDoc (title, order, videoUrl)
+      const mods = [];
 
-  const modsSnap = await getDocs(
-    query(collection(db, "modules"), orderBy("order", "asc"))
-  );
+      for (const modDoc of modsSnap.docs) {
+        const mod = { id: modDoc.id, ...modDoc.data(), classes: [] };
 
-  const mods = [];
+        let classesSnap;
+        try {
+          classesSnap = await getDocs(
+            query(collection(db, "modules", modDoc.id, "classes"), orderBy("order", "asc"))
+          );
+        } catch (e) {
+          classesSnap = await getDocs(collection(db, "modules", modDoc.id, "classes"));
+        }
 
-  for (const modDoc of modsSnap.docs) {
-    const mod = { id: modDoc.id, ...modDoc.data(), classes: [] };
+        mod.classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const classesSnap = await getDocs(
-      query(collection(db, "modules", modDoc.id, "classes"), orderBy("order", "asc"))
-    );
+        mods.push(mod);
+      }
 
-    mod.classes = classesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    mods.push(mod);
-  }
+      // Sort robustly (in case fallback used)
+      mods.sort((a,b) => (Number(a.order)||9999) - (Number(b.order)||9999));
+      mods.forEach((m, idx) => {
+        m._index = idx + 1;
+        if (!Array.isArray(m.classes)) m.classes = [];
+        m.classes.sort((a,b) => (Number(a.order)||9999) - (Number(b.order)||9999));
+        m.classes.forEach((c, cIdx) => c._index = cIdx + 1);
+      });
 
-  modulesData = mods;
-}
+      modulesData = mods;
+    }
 
+    function getModuleByIndex(mIndex) {
+      return modulesData.find(m => m._index === Number(mIndex)) || null;
+    }
 
-    function isModuleUnlocked(progress, m) {
-      if (m === 1) return true;
-      const prev = m - 1;
-      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
-        if (!progress.passedTests[`${prev}-${c}`]) return false;
+    function getClassByKey(key) {
+      const [mStr, cStr] = String(key).split("-");
+      const mIndex = Number(mStr);
+      const cIndex = Number(cStr);
+      const mod = getModuleByIndex(mIndex);
+      if (!mod) return null;
+      return mod.classes.find(c => c._index === cIndex) || null;
+    }
+
+    function classKey(mIndex, cIndex) {
+      return `${Number(mIndex)}-${Number(cIndex)}`;
+    }
+
+    function isModuleUnlocked(progress, mIndex) {
+      mIndex = Number(mIndex);
+      if (mIndex === 1) return true;
+
+      const prev = getModuleByIndex(mIndex - 1);
+      if (!prev) return false;
+
+      // Must pass all tests in previous module
+      for (const cls of prev.classes) {
+        const key = classKey(mIndex - 1, cls._index);
+        if (!progress.passedTests[key]) return false;
       }
       return true;
     }
 
-    function isModuleFullyCompleted(progress, m) {
-      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
-        if (!progress.passedTests[`${m}-${c}`]) return false;
+    function isModuleFullyCompleted(progress, mIndex) {
+      const mod = getModuleByIndex(mIndex);
+      if (!mod) return false;
+      if (!mod.classes || mod.classes.length === 0) return false;
+
+      for (const cls of mod.classes) {
+        const key = classKey(mIndex, cls._index);
+        if (!progress.passedTests[key]) return false;
       }
       return true;
     }
 
-    function isClassUnlocked(progress, m, c) {
-      if (!progress.paidModules[m]) return false;
-      if (c === 1) return true;
-      return !!progress.passedTests[`${m}-${c-1}`];
+    function isClassUnlocked(progress, mIndex, cIndex) {
+      mIndex = Number(mIndex);
+      cIndex = Number(cIndex);
+
+      // Must be paid before ANY class video
+      if (!progress.paidModules[mIndex]) return false;
+
+      // Must be sequential
+      if (cIndex === 1) return true;
+      return !!progress.passedTests[classKey(mIndex, cIndex - 1)];
     }
 
-    function getActiveModule(progress) {
-      for (let m = 1; m <= MODULE_COUNT; m++) {
-        if (isModuleUnlocked(progress, m) && !isModuleFullyCompleted(progress, m)) return m;
+    function getActiveModuleIndex(progress) {
+      // First unlocked module that isn't fully completed
+      for (const mod of modulesData) {
+        const mIndex = mod._index;
+        if (isModuleUnlocked(progress, mIndex) && !isModuleFullyCompleted(progress, mIndex)) {
+          return mIndex;
+        }
       }
-      return MODULE_COUNT;
+      // fallback to last module
+      return modulesData.length ? modulesData[modulesData.length - 1]._index : 1;
     }
+
+    function goToPayment(mIndex) {
+      window.location.href = `./pago.html?mod=${encodeURIComponent(mIndex)}`;
+    }
+    window.goToPayment = goToPayment;
 
     function renderSidebar() {
       modulesSidebar.innerHTML = "";
       const p = currentProgress;
 
-      for (let m = 1; m <= MODULE_COUNT; m++) {
-        const unlocked = isModuleUnlocked(p, m);
-        const completed = isModuleFullyCompleted(p, m);
+      for (const mod of modulesData) {
+        const mIndex = mod._index;
+        const unlocked = isModuleUnlocked(p, mIndex);
+        const completed = isModuleFullyCompleted(p, mIndex);
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "module-nav-item";
         if (completed) btn.classList.add("completed");
         if (!unlocked) btn.classList.add("locked");
-        if (m === selectedModule) btn.classList.add("active");
+        if (mIndex === selectedModuleIndex) btn.classList.add("active");
 
         btn.innerHTML = `
-          <span class="module-nav-label">Módulo ${m}</span>
+          <span class="module-nav-label">Módulo ${mIndex}</span>
           <span class="module-nav-status">${completed ? "Completado" : unlocked ? "Disponible" : "Bloqueado"}</span>
         `;
 
         if (unlocked) {
           btn.addEventListener("click", () => {
-            selectedModule = m;
+            selectedModuleIndex = mIndex;
             renderAll();
           });
         }
@@ -595,59 +554,87 @@ async function loadModulesFromFirestore() {
       }
     }
 
-    function renderModuleDetail(m) {
+    function renderModuleDetail(mIndex) {
       const p = currentProgress;
+      const mod = getModuleByIndex(mIndex);
+
+      if (!mod) {
+        moduleDetail.innerHTML = `
+          <div class="module-header-main">
+            <h2>No hay módulos disponibles</h2>
+            <div class="module-subnote">Aún no se han creado módulos en el sistema.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const moduleUnlocked = isModuleUnlocked(p, mIndex);
+      const moduleCompleted = isModuleFullyCompleted(p, mIndex);
 
       moduleDetail.innerHTML = `
         <div class="module-header-main">
-          <h2>Módulo ${m}</h2>
+          <h2>Módulo ${mIndex}</h2>
           <div class="module-subnote">
-            ${!isModuleUnlocked(p, m) ? "Este módulo se abrirá cuando completes el anterior."
-            : isModuleFullyCompleted(p, m)
-            ? "Módulo completado."
-            : "Avanza clase por clase."}
+            ${!moduleUnlocked ? "Este módulo se abrirá cuando completes el anterior."
+              : moduleCompleted ? "Módulo completado."
+              : "Avanza clase por clase."}
           </div>
         </div>
       `;
 
-      const modulePaid = !!p.paidModules[m];
-      const modulePending = !!p.paymentPending[m];
-      
+      const modulePaid = !!p.paidModules[mIndex];
+      const modulePending = !!p.paymentPending[mIndex];
+
+      // Show activate panel if not paid (as you had)
       if (!modulePaid) {
+        const price = (mod.price != null ? mod.price : modulePricesFallback[mIndex]);
         moduleDetail.innerHTML += `
           <div class="activate-panel">
             <strong>Activar este módulo</strong>
             <p style="margin-top:.25rem;font-size:.78rem;">
-              Aporte sugerido: $${modulePrices[m]} USD
+              Aporte sugerido: $${price || ""} USD
             </p>
             <p style="margin-top:.35rem;font-size:.78rem;">
               ${
                 modulePending
                   ? "<span style='margin-left:.4rem;'>Pago en revisión</span>"
-                  : `<a class="small-btn" href="./pago.html?mod=${m}">Ir a la página de aporte</a>`
+                  : `<a class="small-btn" href="./pago.html?mod=${encodeURIComponent(mIndex)}">Ir a la página de aporte</a>`
               }
             </p>
           </div>
         `;
       }
+
       const classList = document.createElement("div");
       classList.className = "class-list";
 
-      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
-        const key = `${m}-${c}`;
+      // If module itself is locked, show classes but no actions
+      for (const cls of mod.classes) {
+        const cIndex = cls._index;
+        const key = classKey(mIndex, cIndex);
+
         const passed = !!p.passedTests[key];
         const watched = !!p.videoWatched[key];
-        const unlockedClass = modulePaid && isClassUnlocked(p, m, c);
+        const unlockedClass = modulePaid && isClassUnlocked(p, mIndex, cIndex);
 
         const item = document.createElement("div");
         item.className = "class-item";
         if (passed) item.classList.add("completed");
 
+        const title = (cls.title && String(cls.title).trim()) ? cls.title : `Clase ${cIndex}`;
+
         let controls = "";
 
-        if (!modulePaid) {
-          controls = `<span class="lock">Activa el módulo para ver esta clase.</span>`;
+        if (!moduleUnlocked) {
+          controls = `<span class="lock">🔒</span>`;
+        } else if (!modulePaid) {
+          // ✅ Your rule: clicking "Ver clase" should open payment if not paid
+          controls = `
+            <button class="small-btn" onclick="goToPayment('${mIndex}')">Ver clase</button>
+            ${modulePending ? `<span class="lock">Pago en revisión</span>` : `<span class="lock">Activa el módulo</span>`}
+          `;
         } else if (unlockedClass) {
+          // Paid + sequential access
           controls = `
             <button class="small-btn" onclick="openVideoModal('${key}')">
               ${passed ? "Ver otra vez" : "Ver clase"}
@@ -656,16 +643,17 @@ async function loadModulesFromFirestore() {
               passed
                 ? `<button class="small-btn" onclick="openTestPage('${key}')">Prueba aprobada</button>`
                 : watched
-                ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
-                : `<span class="lock">Ver la clase primero.</span>`
+                  ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
+                  : `<span class="lock">Ver la clase primero.</span>`
             }
           `;
         } else {
+          // Paid but blocked by sequence
           controls = `<span class="lock">🔒</span>`;
         }
 
         item.innerHTML = `
-          <div class="class-title">Clase ${c}</div>
+          <div class="class-title">${title}</div>
           <div class="class-actions">${controls}</div>
         `;
 
@@ -675,78 +663,122 @@ async function loadModulesFromFirestore() {
       moduleDetail.appendChild(classList);
     }
 
+    function renderAll() {
+      loadingMsg.style.display = "none";
+
+      if (!modulesData || modulesData.length === 0) {
+        renderSidebar();
+        moduleDetail.innerHTML = `
+          <div class="module-header-main">
+            <h2>No hay módulos disponibles</h2>
+            <div class="module-subnote">Aún no se han creado módulos en el sistema.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Guard: if selected module isn't unlocked, snap to active module
+      if (!isModuleUnlocked(currentProgress, selectedModuleIndex)) {
+        selectedModuleIndex = getActiveModuleIndex(currentProgress);
+      }
+
+      renderSidebar();
+      renderModuleDetail(selectedModuleIndex);
+    }
+
     function openTestPage(key) {
-      // key comes as "m-c" like "1-1"
       const [m, c] = String(key).split("-");
       window.location.href = `./test.html?m=${encodeURIComponent(m)}&c=${encodeURIComponent(c)}`;
-     }
-
-
-
-    /* REQUIRED FIX */
+    }
     window.openTestPage = openTestPage;
-    window.openVideoModal = openVideoModal;
 
-    function renderAll() {
-  loadingMsg.style.display = "none";
-  renderSidebar();
 
-  // ✅ If there are no modules in Firestore yet
-  if (!modulesData || modulesData.length === 0) {
-    moduleDetail.innerHTML = `
-      <div class="module-header-main">
-        <h2>No hay módulos disponibles</h2>
-        <div class="module-subnote">
-          Aún no se han creado módulos en el sistema.
-        </div>
-      </div>
-    `;
-    return;
+
+
+
+
+function toYouTubeEmbedUrl(url) {
+  const raw = String(url || "").trim();
+
+  // If it already is an embed link, keep it
+  if (raw.includes("youtube.com/embed/")) return raw;
+
+  try {
+    const u = new URL(raw);
+
+    // youtu.be/VIDEOID
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.replace("/", "").trim();
+      return `https://www.youtube.com/embed/${id}`;
+    }
+
+    // youtube.com/watch?v=VIDEOID
+    const v = u.searchParams.get("v");
+    if (v) return `https://www.youtube.com/embed/${v}`;
+
+    // /shorts/VIDEOID or /live/VIDEOID
+    const parts = u.pathname.split("/").filter(Boolean);
+
+    const idxShorts = parts.indexOf("shorts");
+    if (idxShorts !== -1 && parts[idxShorts + 1]) {
+      return `https://www.youtube.com/embed/${parts[idxShorts + 1]}`;
+    }
+
+    const idxLive = parts.indexOf("live");
+    if (idxLive !== -1 && parts[idxLive + 1]) {
+      return `https://www.youtube.com/embed/${parts[idxLive + 1]}`;
+    }
+  } catch (e) {
+    // If it's not a valid URL, return as-is
   }
 
-  // ✅ If selectedModule is invalid, force first module
-  const exists = modulesData.some(m => String(m.id) === String(selectedModule));
-  if (!exists) selectedModule = modulesData[0].id;
-
-  renderModuleDetail(selectedModule);
+  return raw;
 }
 
 
-    function openVideoModal(classKey) {
-      const url = videos[classKey];
+
+
+    function openVideoModal(classKeyStr) {
+      const cls = getClassByKey(classKeyStr);
+      if (!cls) return alert("Esta clase no existe.");
+
+      const url = cls.videoUrl;
       if (!url) return alert("Esta clase no tiene video.");
-      currentVideoKey = classKey;
-      videoFrame.src = url + (url.includes("?") ? "&autoplay=1" : "?autoplay=1");
+
+      currentVideoKey = classKeyStr;
+      const embed = toYouTubeEmbedUrl(url);
+      videoFrame.src = embed
+        ? `${embed}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1`
+        : "";
       videoModal.style.display = "flex";
     }
+    window.openVideoModal = openVideoModal;
 
-     async function closeVideoModalReal() {
-       // Cerrar modal y detener video
-       videoModal.style.display = "none";
-       videoFrame.src = "";
+    async function closeVideoModalReal() {
+      videoModal.style.display = "none";
+      videoFrame.src = "";
 
-       if (currentVideoKey) {
-        // Marcar clase como vista
+      if (currentVideoKey) {
+        // Mark as watched when modal is closed (your current behavior)
         currentProgress.videoWatched[currentVideoKey] = true;
-
-        // Guardar en Firestore
         await saveProgress(currentUser.uid, currentProgress);
 
-        // Limpiar referencia temporal
         const justWatched = currentVideoKey;
         currentVideoKey = null;
 
-        // Volver a renderizar la página
         renderAll();
-
-        // Mostrar mensaje claro al estudiante
         alert("La clase ha sido registrada como vista. Ahora puedes tomar la prueba.");
       }
     }
-   
+
     closeModalBtn.addEventListener("click", closeVideoModalReal);
     videoModal.addEventListener("click", (e) => {
       if (e.target === videoModal) closeVideoModalReal();
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "./login.html";
     });
 
     onAuthStateChanged(auth, async (user) => {
@@ -757,17 +789,22 @@ async function loadModulesFromFirestore() {
       currentUser = user;
       userEmailSpan.textContent = user.email;
 
+      loadingMsg.style.display = "block";
+      loadingMsg.textContent = "Cargando tus módulos…";
+
       await loadModulesFromFirestore();
       currentProgress = await loadProgress(user.uid);
-      selectedModule = getActiveModule(currentProgress);
+
+      // Start on the first active module (but user can click others only if unlocked)
+      selectedModuleIndex = getActiveModuleIndex(currentProgress);
+
       renderAll();
     });
 
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "./login.html";
-    });
-
+    // DEV MODE (optional)
+    if (IS_DEV) {
+      console.warn("DEV MODE ACTIVE");
+    }
   </script>
 </body>
 </html>

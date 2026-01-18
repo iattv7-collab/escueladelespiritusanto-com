@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,17 +13,20 @@
       background: linear-gradient(to bottom, #1e3a8a 0%, #3b82f6 40%, #93c5fd 100%);
       min-height: 100vh;
     }
+
     .page-shell {
-      background: rgba(2,6,23,0.65);
+      background: rgba(2, 6, 23, 0.65);
       min-height: 100vh;
       backdrop-filter: blur(6px);
       display: flex;
       flex-direction: column;
     }
+
     header {
       padding: 1rem 1.25rem .5rem;
-      border-bottom: 1px solid rgba(255,255,255,.05);
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
     }
+
     .nav {
       max-width: 1080px;
       margin: 0 auto;
@@ -32,11 +36,32 @@
       gap: 1rem;
       color: #fff;
     }
-    .brand strong { color:#fff; }
-    .brand small { color: rgba(226,232,240,.7); }
-    .brand a { color: #fbbf24; text-decoration:none; font-size:.75rem; }
-    .header-right { display:flex; gap:.6rem; align-items:center; }
-    .user-chip { font-size:.7rem; color:rgba(226,232,240,.85); }
+
+    .brand strong {
+      color: #fff;
+    }
+
+    .brand small {
+      color: rgba(226, 232, 240, .7);
+    }
+
+    .brand a {
+      color: #fbbf24;
+      text-decoration: none;
+      font-size: .75rem;
+    }
+
+    .header-right {
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+    }
+
+    .user-chip {
+      font-size: .7rem;
+      color: rgba(226, 232, 240, .85);
+    }
+
     .btn {
       background: linear-gradient(120deg, #f97316, #fbbf24);
       color: #020617;
@@ -48,7 +73,10 @@
       text-decoration: none;
       transition: transform .15s ease;
     }
-    .btn:hover { transform: translateY(-1px); }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
 
     main {
       max-width: 1080px;
@@ -66,17 +94,17 @@
     .modules-sidebar {
       width: 230px;
       max-width: 260px;
-      background: rgba(15,23,42,.78);
+      background: rgba(15, 23, 42, .78);
       border-radius: .9rem;
       padding: .85rem .8rem;
-      border: 1px solid rgba(251,191,36,.35);
+      border: 1px solid rgba(251, 191, 36, .35);
     }
 
     .sidebar-title {
       font-size: .8rem;
       text-transform: uppercase;
       letter-spacing: .08em;
-      color: rgba(251,191,36,.9);
+      color: rgba(251, 191, 36, .9);
       margin: 0 0 .5rem;
     }
 
@@ -92,8 +120,8 @@
       justify-content: space-between;
       padding: .35rem .55rem;
       border-radius: .6rem;
-      background: rgba(251,191,36,0.18);
-      border: 1px solid rgba(251,191,36,0.35);
+      background: rgba(251, 191, 36, 0.18);
+      border: 1px solid rgba(251, 191, 36, 0.35);
       color: #fff8e1;
       font-size: .8rem;
       cursor: pointer;
@@ -101,18 +129,18 @@
     }
 
     .module-nav-item:hover {
-      background: rgba(251,191,36,0.30);
+      background: rgba(251, 191, 36, 0.30);
       transform: translateY(-1px);
     }
 
     .module-nav-item.active {
       border-color: #fbbf24;
-      background: rgba(251,191,36,0.40);
+      background: rgba(251, 191, 36, 0.40);
     }
 
     .module-nav-item.completed {
-      background: rgba(34,197,94,.25);
-      border-color: rgba(34,197,94,.55);
+      background: rgba(34, 197, 94, .25);
+      border-color: rgba(34, 197, 94, .55);
     }
 
     .module-nav-item.locked {
@@ -138,7 +166,9 @@
       gap: 1rem;
     }
 
-    .muted { color: rgba(226,232,240,.8); }
+    .muted {
+      color: rgba(226, 232, 240, .8);
+    }
 
     #moduleDetail {
       display: grid;
@@ -156,12 +186,12 @@
 
     .module-subnote {
       font-size: .8rem;
-      color: rgba(226,232,240,.7);
+      color: rgba(226, 232, 240, .7);
     }
 
     .activate-panel {
-      background: rgba(15,23,42,.9);
-      border: 1px solid rgba(251,191,36,.4);
+      background: rgba(15, 23, 42, .9);
+      border: 1px solid rgba(251, 191, 36, .4);
       border-radius: .6rem;
       padding: .55rem .6rem;
       margin-bottom: .4rem;
@@ -174,28 +204,36 @@
     }
 
     .class-item {
-      background: rgba(15,23,42,.35);
-      border: 1px solid rgba(255,255,255,.015);
+      background: rgba(15, 23, 42, .35);
+      border: 1px solid rgba(255, 255, 255, .015);
       border-radius: .5rem;
       padding: .4rem .45rem .35rem;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .6rem;
     }
 
     .class-item.completed {
-      background: rgba(22,163,74,.22);
-      border: 1px solid rgba(22,163,74,.3);
+      background: rgba(22, 163, 74, .22);
+      border: 1px solid rgba(22, 163, 74, .3);
     }
 
-    .class-title { font-size:.8rem; }
+    .class-title {
+      font-size: .8rem;
+    }
 
-    .class-actions { display:flex; gap:.35rem; align-items:center; flex-wrap: wrap; justify-content: flex-end; }
+    .class-actions {
+      display: flex;
+      gap: .35rem;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
     .small-btn {
-      background: rgba(248,250,252,.1);
-      border: 1px solid rgba(255,255,255,.05);
+      background: rgba(248, 250, 252, .1);
+      border: 1px solid rgba(255, 255, 255, .05);
       border-radius: .4rem;
       padding: .2rem .55rem;
       font-size: .68rem;
@@ -205,26 +243,32 @@
       white-space: nowrap;
     }
 
-    .small-btn:hover { background: rgba(248,250,252,.2); }
+    .small-btn:hover {
+      background: rgba(248, 250, 252, .2);
+    }
 
-    .lock { font-size:.8rem; opacity:.9; }
+    .lock {
+      font-size: .8rem;
+      opacity: .9;
+    }
 
     footer {
       text-align: center;
       padding: 1.5rem 1.25rem 2.2rem;
-      color: rgba(226,232,240,.55);
+      color: rgba(226, 232, 240, .55);
       font-size: .73rem;
       margin-top: auto;
     }
+
     footer .footer-btn {
       display: inline-block;
       margin-bottom: .6rem;
-      background:linear-gradient(120deg, #f97316, #fbbf24);
-      color:#020617;
-      border-radius:.6rem;
-      padding:.45rem .95rem;
-      text-decoration:none;
-      font-weight:600;
+      background: linear-gradient(120deg, #f97316, #fbbf24);
+      color: #020617;
+      border-radius: .6rem;
+      padding: .45rem .95rem;
+      text-decoration: none;
+      font-weight: 600;
     }
 
     #resetProgress {
@@ -234,16 +278,17 @@
     .video-modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.6);
+      background: rgba(0, 0, 0, .6);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 2000;
       padding: 1rem;
     }
+
     .video-modal {
       background: #020617;
-      border: 1px solid rgba(255,255,255,.08);
+      border: 1px solid rgba(255, 255, 255, .08);
       border-radius: 1rem;
       max-width: 960px;
       width: min(960px, 100%);
@@ -251,16 +296,27 @@
       position: relative;
       overflow: hidden;
     }
-    .video-modal iframe { width:100%; height:100%; border:none; }
+
+    .video-modal iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
     .video-modal-close {
-      position:absolute; top:.5rem; right:.5rem;
-      background: rgba(15,23,42,.8);
-      border:1px solid rgba(255,255,255,.2);
-      color:#fff;
-      border-radius:999px;
-      width:30px; height:30px;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
+      position: absolute;
+      top: .5rem;
+      right: .5rem;
+      background: rgba(15, 23, 42, .8);
+      border: 1px solid rgba(255, 255, 255, .2);
+      color: #fff;
+      border-radius: 999px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
       z-index: 10;
     }
 
@@ -268,6 +324,7 @@
       .materials-layout {
         flex-direction: column;
       }
+
       .modules-sidebar {
         width: 100%;
         max-width: 100%;
@@ -322,7 +379,9 @@
   <div class="video-modal-backdrop" id="videoModal">
     <div class="video-modal">
       <button class="video-modal-close" id="closeModalBtn">×</button>
-      <iframe id="videoFrame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <iframe id="videoFrame" src=""
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen></iframe>
     </div>
   </div>
 
@@ -378,7 +437,7 @@
     let currentVideoKey = null;    // "m-c" like "1-1"
 
     // Optional fallback prices (only used if module.price missing)
-    const modulePricesFallback = { 1:25, 2:25, 3:25, 4:25, 5:30, 6:30 };
+    const modulePricesFallback = { 1: 25, 2: 25, 3: 25, 4: 25, 5: 30, 6: 30 };
 
     function emptyProgress() {
       return {
@@ -438,11 +497,11 @@
       }
 
       // Sort robustly (in case fallback used)
-      mods.sort((a,b) => (Number(a.order)||9999) - (Number(b.order)||9999));
+      mods.sort((a, b) => (Number(a.order) || 9999) - (Number(b.order) || 9999));
       mods.forEach((m, idx) => {
         m._index = idx + 1;
         if (!Array.isArray(m.classes)) m.classes = [];
-        m.classes.sort((a,b) => (Number(a.order)||9999) - (Number(b.order)||9999));
+        m.classes.sort((a, b) => (Number(a.order) || 9999) - (Number(b.order) || 9999));
         m.classes.forEach((c, cIdx) => c._index = cIdx + 1);
       });
 
@@ -576,11 +635,13 @@
           <h2>Módulo ${mIndex}</h2>
           <div class="module-subnote">
             ${!moduleUnlocked ? "Este módulo se abrirá cuando completes el anterior."
-              : moduleCompleted ? "Módulo completado."
-              : "Avanza clase por clase."}
+          : moduleCompleted ? "Módulo completado."
+            : "Avanza clase por clase."}
           </div>
         </div>
       `;
+
+
 
       const modulePaid = !!p.paidModules[mIndex];
       const modulePending = !!p.paymentPending[mIndex];
@@ -595,15 +656,16 @@
               Aporte sugerido: $${price || ""} USD
             </p>
             <p style="margin-top:.35rem;font-size:.78rem;">
-              ${
-                modulePending
-                  ? "<span style='margin-left:.4rem;'>Pago en revisión</span>"
-                  : `<a class="small-btn" href="./pago.html?mod=${encodeURIComponent(mIndex)}">Ir a la página de aporte</a>`
-              }
+              ${modulePending
+            ? "<span style='margin-left:.4rem;'>Pago en revisión</span>"
+            : `<a class="small-btn" href="./pago.html?m=${encodeURIComponent(mIndex + 1)}">Ir a la página de aporte</a>`
+          }
             </p>
           </div>
         `;
       }
+
+
 
       const classList = document.createElement("div");
       classList.className = "class-list";
@@ -639,12 +701,11 @@
             <button class="small-btn" onclick="openVideoModal('${key}')">
               ${passed ? "Ver otra vez" : "Ver clase"}
             </button>
-            ${
-              passed
-                ? `<button class="small-btn" onclick="openTestPage('${key}')">Prueba aprobada</button>`
-                : watched
-                  ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
-                  : `<span class="lock">Ver la clase primero.</span>`
+            ${passed
+              ? `<button class="small-btn" onclick="openTestPage('${key}')">Prueba aprobada</button>`
+              : watched
+                ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
+                : `<span class="lock">Ver la clase primero.</span>`
             }
           `;
         } else {
@@ -688,8 +749,9 @@
 
     function openTestPage(key) {
       const [m, c] = String(key).split("-");
-      window.location.href = `./test.html?m=${encodeURIComponent(m)}&c=${encodeURIComponent(c)}`;
+      window.location.href = `test.html?m=${encodeURIComponent(m)}&c=${encodeURIComponent(c)}`;
     }
+
     window.openTestPage = openTestPage;
 
 
@@ -697,43 +759,43 @@
 
 
 
-function toYouTubeEmbedUrl(url) {
-  const raw = String(url || "").trim();
+    function toYouTubeEmbedUrl(url) {
+      const raw = String(url || "").trim();
 
-  // If it already is an embed link, keep it
-  if (raw.includes("youtube.com/embed/")) return raw;
+      // If it already is an embed link, keep it
+      if (raw.includes("youtube.com/embed/")) return raw;
 
-  try {
-    const u = new URL(raw);
+      try {
+        const u = new URL(raw);
 
-    // youtu.be/VIDEOID
-    if (u.hostname.includes("youtu.be")) {
-      const id = u.pathname.replace("/", "").trim();
-      return `https://www.youtube.com/embed/${id}`;
+        // youtu.be/VIDEOID
+        if (u.hostname.includes("youtu.be")) {
+          const id = u.pathname.replace("/", "").trim();
+          return `https://www.youtube.com/embed/${id}`;
+        }
+
+        // youtube.com/watch?v=VIDEOID
+        const v = u.searchParams.get("v");
+        if (v) return `https://www.youtube.com/embed/${v}`;
+
+        // /shorts/VIDEOID or /live/VIDEOID
+        const parts = u.pathname.split("/").filter(Boolean);
+
+        const idxShorts = parts.indexOf("shorts");
+        if (idxShorts !== -1 && parts[idxShorts + 1]) {
+          return `https://www.youtube.com/embed/${parts[idxShorts + 1]}`;
+        }
+
+        const idxLive = parts.indexOf("live");
+        if (idxLive !== -1 && parts[idxLive + 1]) {
+          return `https://www.youtube.com/embed/${parts[idxLive + 1]}`;
+        }
+      } catch (e) {
+        // If it's not a valid URL, return as-is
+      }
+
+      return raw;
     }
-
-    // youtube.com/watch?v=VIDEOID
-    const v = u.searchParams.get("v");
-    if (v) return `https://www.youtube.com/embed/${v}`;
-
-    // /shorts/VIDEOID or /live/VIDEOID
-    const parts = u.pathname.split("/").filter(Boolean);
-
-    const idxShorts = parts.indexOf("shorts");
-    if (idxShorts !== -1 && parts[idxShorts + 1]) {
-      return `https://www.youtube.com/embed/${parts[idxShorts + 1]}`;
-    }
-
-    const idxLive = parts.indexOf("live");
-    if (idxLive !== -1 && parts[idxLive + 1]) {
-      return `https://www.youtube.com/embed/${parts[idxLive + 1]}`;
-    }
-  } catch (e) {
-    // If it's not a valid URL, return as-is
-  }
-
-  return raw;
-}
 
 
 
@@ -807,4 +869,5 @@ function toYouTubeEmbedUrl(url) {
     }
   </script>
 </body>
+
 </html>

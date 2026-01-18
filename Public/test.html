@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test | La Escuela del Espíritu Santo</title>
+
+  <style>
+    body{
+      font-family: "Times New Roman", Times, serif;
+      background:#0b1a2b;
+      color:#fff;
+      margin:0;
+      padding:0;
+    }
+    .wrap{
+      max-width:900px;
+      margin:0 auto;
+      padding:20px;
+    }
+    .card{
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:14px;
+      padding:18px;
+      margin-top:16px;
+    }
+    h1,h2{
+      margin:0 0 10px 0;
+    }
+    .muted{
+      opacity:0.85;
+      font-size:14px;
+    }
+    .qblock{
+      margin:18px 0;
+      padding:14px;
+      border-radius:12px;
+      background:rgba(0,0,0,0.18);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .qtitle{
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    label{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.10);
+      margin-bottom:8px;
+    }
+    label:hover{
+      background:rgba(255,255,255,0.09);
+    }
+    button{
+      background:#f2c14e;
+      color:#111;
+      border:none;
+      padding:12px 16px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+      margin-top:12px;
+      width:100%;
+      font-family: "Times New Roman", Times, serif;
+      font-size:16px;
+    }
+    button:disabled{
+      opacity:0.5;
+      cursor:not-allowed;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .back{
+      display:inline-block;
+      color:#fff;
+      text-decoration:none;
+      opacity:0.9;
+      font-size:14px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.06);
+    }
+    .back:hover{
+      opacity:1;
+    }
+    #msg{
+      margin-top:10px;
+      font-size:14px;
+      opacity:0.9;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <h1>La Escuela del Espíritu Santo</h1>
+      <a class="back" href="./materiales.html">← Volver a Materiales</a>
+    </div>
+
+    <div class="card">
+      <h2 id="testTitle">Cargando...</h2>
+      <div class="muted">Responde las preguntas y presiona <b>Enviar</b>.</div>
+      <div id="msg"></div>
+    </div>
+
+    <div class="card">
+      <div id="questionsWrap"></div>
+      <button id="submitBtn">Enviar</button>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc,
+      collection, getDocs, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+    // ✅ Your Firebase config (keep this)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
+      authDomain: "escuela-ees.firebaseapp.com",
+      projectId: "escuela-ees",
+      storageBucket: "escuela-ees.firebasestorage.app",
+      messagingSenderId: "514513764908",
+      appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // URL: test.html?mod=1&class=1
+    // (also supports materiales style: ?m=1&c=1)
+    const params = new URLSearchParams(location.search);
+    const modId = params.get("mod") || params.get("m") || "1";
+    const classId = params.get("class") || params.get("c") || "1";
+
+    const elTitle = document.getElementById("testTitle");
+    const elWrap  = document.getElementById("questionsWrap");
+    const elBtn   = document.getElementById("submitBtn");
+    const elMsg   = document.getElementById("msg");
+
+    function setMsg(t){ elMsg.textContent = t || ""; }
+
+    async function loadQuestions() {
+      const qRef = collection(db, "modules", modId, "classes", classId, "questions");
+      const qSnap = await getDocs(query(qRef, orderBy("order")));
+
+      const questions = [];
+
+      for (const qDoc of qSnap.docs) {
+        const qData = qDoc.data();
+        if (qData.active === false) continue;
+
+        const aRef = collection(db, "modules", modId, "classes", classId, "questions", qDoc.id, "answers");
+        const aSnap = await getDocs(query(aRef, orderBy("order")));
+
+        const answers = [];
+        aSnap.forEach(a => {
+          const aData = a.data();
+          if (aData.active === false) return;
+          answers.push({ id: a.id, ...aData });
+        });
+
+        questions.push({
+          id: qDoc.id,
+          text: qData.text || "",
+          correctIndex: Number(qData.correctIndex ?? 0),
+          order: Number(qData.order ?? 0),
+          answers
+        });
+      }
+
+      return questions;
+    }
+
+    function renderQuestions(questions) {
+      elWrap.innerHTML = "";
+
+      questions.forEach((q, qi) => {
+        const block = document.createElement("div");
+        block.className = "qblock";
+
+        const title = document.createElement("div");
+        title.className = "qtitle";
+        title.textContent = `${qi + 1}. ${q.text}`;
+        block.appendChild(title);
+
+        q.answers.forEach((a, ai) => {
+          const label = document.createElement("label");
+          label.innerHTML = `
+            <input type="radio" name="q_${q.id}" value="${ai}">
+            <span>${a.text || ""}</span>
+          `;
+          block.appendChild(label);
+        });
+
+        elWrap.appendChild(block);
+      });
+    }
+
+    function grade(questions) {
+      let correctCount = 0;
+      const results = {};
+
+      for (const q of questions) {
+        const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+        const picked = sel ? Number(sel.value) : -1;
+        const ok = picked === q.correctIndex;
+
+        results[q.id] = ok;
+        if (ok) correctCount++;
+      }
+
+      return { correctCount, results };
+    }
+
+    // ✅ Save percent-based progress
+    async function saveProgress(uid, modId, classId, scorePercent, passPercent, results) {
+      const ref = doc(db, "userProgress", uid);
+      const snap = await getDoc(ref);
+      const progress = snap.exists() ? snap.data() : {};
+
+      progress.passedTests ??= {};
+      progress.lastTest ??= {};
+
+      const key = `${modId}-${classId}`;
+      const passed = scorePercent >= passPercent;
+
+      progress.passedTests[key] = passed;
+      progress.lastTest[key] = {
+        scorePercent,
+        passPercent,
+        results,
+        at: Date.now()
+      };
+
+      await setDoc(ref, progress, { merge: true });
+      return passed;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        location.href = "./login.html";
+        return;
+      }
+
+      elTitle.textContent = `Prueba – Módulo ${modId} / Clase ${classId}`;
+
+      const classRef = doc(db, "modules", modId, "classes", classId);
+      const classSnap = await getDoc(classRef);
+
+      // Firestore stores percent (example: 80)
+      const passPercent = classSnap.exists()
+        ? Number(classSnap.data().passScore ?? 80)
+        : 80;
+
+      setMsg("Cargando preguntas...");
+      const questions = await loadQuestions();
+
+      if (!questions.length) {
+        setMsg("No hay preguntas activas para esta clase.");
+        elBtn.disabled = true;
+        return;
+      }
+
+      renderQuestions(questions);
+      setMsg("");
+
+      elBtn.addEventListener("click", async () => {
+        const { correctCount, results } = grade(questions);
+
+        const total = questions.length || 1;
+        const scorePercent = Math.round((correctCount / total) * 100);
+
+        const passed = scorePercent >= passPercent;
+
+        await saveProgress(user.uid, modId, classId, scorePercent, passPercent, results);
+
+        if (passed) {
+          alert(`Aprobaste. Puntaje: ${scorePercent}% (mínimo ${passPercent}%)`);
+          location.href = "./materiales.html";
+        } else {
+          alert(`No aprobaste. Puntaje: ${scorePercent}% (mínimo ${passPercent}%). Intenta de nuevo.`);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

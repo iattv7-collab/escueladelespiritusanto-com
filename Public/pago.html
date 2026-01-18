@@ -95,7 +95,7 @@
   <main>
     <h1 id="title">Pago de módulo</h1>
     <p class="muted" id="intro">
-      Elige cómo quieres pagar este módulo. Con tarjeta se activa automáticamente. 
+      Elige cómo quieres pagar este módulo. Con tarjeta se activa automáticamente.
       Si pagas por Zelle o Cash App, envía el comprobante por WhatsApp.
     </p>
 
@@ -124,7 +124,7 @@
       </div>
 
       <button id="markPendingBtn" class="btn btn-secondary" type="button">
-        ✔ Ya pagué (enviar a revisión)
+        Ya pagué (enviar a revisión)
       </button>
 
       <a href="./materiales.html" class="muted" style="font-size:.78rem;">Volver a materiales</a>
@@ -139,7 +139,6 @@
     </div>
   </div>
 
-  <!-- ✅ UPDATED FIREBASE ONLY -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -159,8 +158,13 @@
     const db = getFirestore(app);
 
     const params = new URLSearchParams(window.location.search);
-    const modParam = params.get("mod");
-    const moduleToPay = modParam ? parseInt(modParam, 10) : 1;
+
+    // Accept BOTH: ?m=2 OR ?mod=2 (and default to 1)
+    const rawMod = params.get("m") ?? params.get("mod");
+    const moduleToPay = rawMod ? parseInt(rawMod, 10) : 1;
+
+    // IMPORTANT: materiales.html uses 0-based keys: paidModules[mIndex]
+    const moduleIndex = Number.isFinite(moduleToPay) ? (moduleToPay - 1) : 0;
 
     const MODULE_COUNT = 6;
     const CLASSES_PER_MODULE = 4;
@@ -226,6 +230,8 @@
     function showOverlay() { loadingOverlay.style.display = "flex"; }
     function hideOverlay() { loadingOverlay.style.display = "none"; }
 
+    // Keeps your existing logic: module 1 is always unlocked;
+    // modules 2+ require ALL tests passed from previous module.
     function isModuleUnlocked(progress, moduleNumber) {
       if (moduleNumber === 1) return true;
       const prev = moduleNumber - 1;
@@ -244,6 +250,12 @@
       if (user.displayName) currentUserName = user.displayName;
       if (user.email) currentUserEmail = user.email;
 
+      // Basic param validation
+      if (!Number.isFinite(moduleToPay) || moduleToPay < 1 || moduleToPay > MODULE_COUNT) {
+        window.location.href = "./materiales.html";
+        return;
+      }
+
       const ref = doc(db, "userProgress", user.uid);
       const snap = await getDoc(ref);
       let progress = snap.exists() ? snap.data() : {};
@@ -252,8 +264,11 @@
       progress.passedTests ??= {};
       progress.videoWatched ??= {};
 
-      if (!moduleToPay || moduleToPay < 1 || moduleToPay > MODULE_COUNT ||
-          progress.paidModules[moduleToPay] || !isModuleUnlocked(progress, moduleToPay)) {
+      // IMPORTANT: use 0-based keys to match materiales.html
+      const alreadyPaid = !!progress.paidModules[moduleIndex];
+      const unlocked = isModuleUnlocked(progress, moduleToPay);
+
+      if (alreadyPaid || !unlocked) {
         window.location.href = "./materiales.html";
         return;
       }
@@ -262,7 +277,7 @@
       payBox.style.display = "grid";
 
       markPendingBtn.addEventListener("click", async () => {
-        progress.paymentPending[moduleToPay] = true;
+        progress.paymentPending[moduleIndex] = true; // 0-based
         await setDoc(ref, progress, { merge: true });
         window.location.href = "./materiales.html";
       });

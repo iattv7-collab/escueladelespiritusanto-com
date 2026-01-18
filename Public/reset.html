@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restablecer contraseña ▢ La Escuela del Espíritu Santo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(to bottom, #1e3a8a 0%, #3b82f6 40%, #93c5fd 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .card {
+      background: rgba(15,23,42,.65);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 1.1rem;
+      padding: 1.75rem 1.5rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 15px 30px rgba(15,23,42,.3);
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: .75rem;
+    }
+    p { color: rgba(226,232,240,.8); font-size: .85rem; margin-bottom: 1rem; }
+    input {
+      width: 100%;
+      padding: .55rem .6rem;
+      border-radius: .5rem;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(15,23,42,.25);
+      color: #fff;
+      font-size: .85rem;
+      margin-bottom: .85rem;
+    }
+    input:focus { outline: 1px solid rgba(251,191,36,.5); }
+    button {
+      width: 100%;
+      background: linear-gradient(120deg, #f97316, #fbbf24);
+      color: #020617;
+      border: none;
+      border-radius: .6rem;
+      padding: .6rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(249,115,22,0.4);
+    }
+    .message {
+      display: none;
+      margin-top: .8rem;
+      padding: .6rem;
+      border-radius: .5rem;
+      font-size: .85rem;
+    }
+    .success {
+      display: block;
+      background: rgba(22,163,74,.12);
+      border: 1px solid rgba(22,163,74,.3);
+      color: #dcfce7;
+    }
+    .error {
+      display: block;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.25);
+      color: #fecaca;
+    }
+    a {
+      color: #fbbf24;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+      font-size: .8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Restablecer contraseña</h1>
+    <p>Escribe tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña.</p>
+
+    <input id="email" type="email" placeholder="tucorreo@mail.com" required />
+    <button id="resetBtn">Enviar enlace</button>
+
+    <div id="messageBox" class="message"></div>
+
+    <a href="login.html">← Volver a iniciar sesión</a>
+  </div>
+
+  <!-- ✅ UPDATED FIREBASE ONLY -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
+      authDomain: "escuela-ees.firebaseapp.com",
+      projectId: "escuela-ees",
+      storageBucket: "escuela-ees.firebasestorage.app",
+      messagingSenderId: "514513764908",
+      appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const resetBtn = document.getElementById('resetBtn');
+    const emailInput = document.getElementById('email');
+    const messageBox = document.getElementById('messageBox');
+
+    resetBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim().toLowerCase();
+      messageBox.style.display = "none";
+
+      if (!email) {
+        messageBox.className = "message error";
+        messageBox.textContent = "Por favor escribe tu correo.";
+        messageBox.style.display = "block";
+        return;
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        messageBox.className = "message success";
+        messageBox.textContent =
+          "Si existe una cuenta con ese correo, recibirás un enlace para restablecer tu contraseña.";
+        messageBox.style.display = "block";
+
+      } catch (err) {
+        console.error(err);
+        messageBox.className = "message error";
+        messageBox.textContent =
+          "Hubo un error al intentar enviar el correo. Verifica el correo o intenta más tarde.";
+        messageBox.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

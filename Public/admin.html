@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin – La Escuela del Espíritu Santo</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.04);
+      --border:rgba(255,255,255,.10);
+      --border2:rgba(255,255,255,.12);
+      --muted:#9ca3af;
+      --text:#e5e7eb;
+      --gold:#f59e0b;
+      --red:#ef4444;
+      --ghost:rgba(255,255,255,.06);
+      --ghost2:rgba(255,255,255,.12);
+    }
+
+    body{
+      margin:0;
+      font-family:"Times New Roman", Times, serif;
+      background:var(--bg);
+      color:var(--text);
+      padding:18px;
+    }
+
+    .wrap{max-width:1180px;margin:0 auto;}
+    h1{margin:0 0 8px;font-size:28px;}
+    .muted{color:var(--muted);margin:0 0 16px;}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .small{font-size:13px;color:var(--muted);}
+    .sep{height:1px;background:rgba(255,255,255,.10);margin:12px 0;}
+
+    label{display:block;font-size:14px;color:#cbd5e1;margin-bottom:6px;}
+
+    input, select, textarea{
+      background:rgba(0,0,0,.35);
+      border:1px solid var(--border2);
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 10px;
+      font-family:"Times New Roman", Times, serif;
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    textarea{
+      min-height:80px;
+      resize:vertical;
+    }
+
+    .btn{
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-weight:700;
+      cursor:pointer;
+      font-family:"Times New Roman", Times, serif;
+      white-space:nowrap;
+    }
+    .btn-primary{background:var(--gold);color:#111827;}
+    .btn-ghost{
+      background:var(--ghost);
+      border:1px solid var(--ghost2);
+      color:var(--text);
+    }
+    .btn-danger{background:var(--red);color:white;}
+
+    /* Layout: stacked sections, each section is horizontal grid */
+    .section-title{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:0 0 10px;
+    }
+    .section-title h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .grid-row{
+      display:grid;
+      grid-template-columns: 220px 260px 140px 160px 140px 1fr;
+      gap:10px;
+      align-items:end;
+    }
+
+    /* For Class row (needs wider video URL) */
+    .grid-row.class{
+      grid-template-columns: 220px 260px 140px 1fr 140px 140px;
+    }
+
+    /* Question row */
+    .grid-row.question{
+      grid-template-columns: 220px 140px 160px 140px 1fr;
+    }
+
+    /* Answers row */
+    .grid-answers{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .hint{
+      margin-top:10px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+    }
+
+    .radio-row{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .radio-row label{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin:0;
+      color:#e5e7eb;
+      font-size:14px;
+    }
+
+    .list{margin-top:10px;}
+    .item{
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      margin-bottom:10px;
+    }
+    .item-title{font-weight:700}
+    .pill{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid rgba(255,255,255,.15);
+      color:#cbd5e1;
+      margin-left:8px;
+    }
+
+    /* ✅ Reduce button clutter: keep the originals in DOM (admin.js uses them)
+       but hide them visually, and expose a single "Guardar todo". */
+    .hidden-btn{
+      display:none !important;
+    }
+
+    @media (max-width: 1100px){
+      .grid-row,
+      .grid-row.class,
+      .grid-row.question{
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid-answers{grid-template-columns:1fr;}
+      .actions{justify-content:flex-start;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Admin</h1>
+        <p class="muted">Aquí vas a crear/editar: Módulos → Clases → Preguntas → Respuestas (todo desde admin, sin tocar Firebase Console).</p>
+        <div class="small" id="authStatus">Cargando sesión…</div>
+      </div>
+
+      <div class="actions" style="margin:0;">
+        <!-- ✅ MAIN BUTTONS (what you’ll actually use) -->
+        <button class="btn btn-primary" id="saveAllBtn" type="button">Guardar TODO (Módulo + Clase + Pregunta + Respuestas)</button>
+        <button class="btn btn-ghost" id="loadClassBtnVisible" type="button">Cargar clase</button>
+        <button class="btn btn-ghost" id="loadQuestionBtnVisible" type="button">Cargar pregunta</button>
+        <button class="btn btn-danger" id="logoutBtn" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <!-- 1) MODULO -->
+    <div class="card">
+      <div class="section-title">
+        <h2>1) Módulo</h2>
+        <span class="small">“Orden” = la posición del módulo (1,2,3…).</span>
+      </div>
+
+      <div class="grid-row">
+        <div>
+          <label>ID módulo (ej: 1)</label>
+          <input id="moduleId" placeholder="1" />
+        </div>
+
+        <div>
+          <label>Título</label>
+          <input id="moduleTitle" placeholder="Módulo 1" />
+        </div>
+
+        <div>
+          <label>Orden</label>
+          <input id="moduleOrder" type="number" placeholder="1" />
+        </div>
+
+        <div>
+          <label>Precio</label>
+          <input id="modulePrice" type="number" placeholder="25" />
+        </div>
+
+        <div>
+          <label>Activo</label>
+          <select id="moduleActive">
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <div class="small">
+          Tip: si dejas el ID en blanco, se usará el “Orden” como ID.
+        </div>
+      </div>
+
+      <!-- ORIGINAL BUTTON (admin.js needs it) -->
+      <button class="btn btn-primary hidden-btn" id="saveModuleBtn" type="button">Guardar módulo</button>
+    </div>
+
+    <!-- 2) CLASE -->
+    <div class="card">
+      <div class="section-title">
+        <h2>2) Clase</h2>
+        <span class="small">“Orden” = la posición de la clase dentro del módulo (1,2,3…).</span>
+      </div>
+
+      <div class="grid-row class">
+        <div>
+          <label>ID clase (ej: 1)</label>
+          <input id="classId" placeholder="1" />
+        </div>
+
+        <div>
+          <label>Título</label>
+          <input id="classTitle" placeholder="Clase 1" />
+        </div>
+
+        <div>
+          <label>Orden</label>
+          <input id="classOrder" type="number" placeholder="1" />
+        </div>
+
+        <div>
+          <label>Video URL (YouTube)</label>
+          <input id="classVideoUrl" placeholder="https://www.youtube.com/watch?v=..." />
+        </div>
+
+        <div>
+          <label>PassScore (%)</label>
+          <input id="classPassScore" type="number" placeholder="80" />
+        </div>
+
+        <div>
+          <label>Activo</label>
+          <select id="classActive">
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ORIGINAL BUTTONS (admin.js needs them) -->
+      <button class="btn btn-primary hidden-btn" id="saveClassBtn" type="button">Guardar clase</button>
+      <button class="btn btn-ghost hidden-btn" id="loadClassBtn" type="button">Cargar datos</button>
+    </div>
+
+    <!-- 3) PREGUNTA + RESPUESTAS -->
+    <div class="card">
+      <div class="section-title">
+        <h2>3) Pregunta + Respuestas</h2>
+        <span class="small">Marca la respuesta correcta con el radio (A/B/C/D).</span>
+      </div>
+
+      <div class="grid-row question">
+        <div>
+          <label>ID pregunta (ej: 1)</label>
+          <input id="questionId" placeholder="1" />
+        </div>
+
+        <div>
+          <label>Orden</label>
+          <input id="questionOrder" type="number" placeholder="1" />
+        </div>
+
+        <div>
+          <label>CorrectIndex (0–3)</label>
+          <input id="correctIndex" type="number" placeholder="0" readonly />
+        </div>
+
+        <div>
+          <label>Activo</label>
+          <select id="questionActive">
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <div class="small">
+          “Cargar pregunta” trae la pregunta + respuestas desde Firestore para editar.
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Texto de la pregunta</label>
+        <textarea id="questionText" placeholder="Escribe la pregunta aquí..."></textarea>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3 style="margin:0 0 10px;">Respuestas (4)</h3>
+
+      <div class="grid-answers">
+        <div>
+          <label>Respuesta A</label>
+          <input id="a0" placeholder="Respuesta A" />
+        </div>
+        <div>
+          <label>Respuesta B</label>
+          <input id="a1" placeholder="Respuesta B" />
+        </div>
+        <div>
+          <label>Respuesta C</label>
+          <input id="a2" placeholder="Respuesta C" />
+        </div>
+        <div>
+          <label>Respuesta D</label>
+          <input id="a3" placeholder="Respuesta D" />
+        </div>
+      </div>
+
+      <div class="hint">
+        <div class="small">
+          Marca SOLO una opción como correcta:
+          <strong>A</strong>=0, <strong>B</strong>=1, <strong>C</strong>=2, <strong>D</strong>=3
+        </div>
+
+        <div class="radio-row">
+          <label><input type="radio" name="correctPick" value="0"> Correcta: A</label>
+          <label><input type="radio" name="correctPick" value="1"> Correcta: B</label>
+          <label><input type="radio" name="correctPick" value="2"> Correcta: C</label>
+          <label><input type="radio" name="correctPick" value="3"> Correcta: D</label>
+          <span class="small" id="statusMsg"></span>
+        </div>
+      </div>
+
+      <!-- ORIGINAL BUTTONS (admin.js needs them) -->
+      <button class="btn btn-primary hidden-btn" id="saveQuestionBtn" type="button">Guardar pregunta</button>
+      <button class="btn btn-ghost hidden-btn" id="loadQuestionBtn" type="button">Cargar</button>
+      <button class="btn btn-primary hidden-btn" id="saveAnswersBtn" type="button">Guardar respuestas</button>
+    </div>
+
+    <!-- VISTA RAPIDA -->
+    <div class="card">
+      <div class="section-title">
+        <h2>Vista rápida (lo que existe en Firestore)</h2>
+        <span class="small">Útil para verificar que el módulo/clase/preguntas existen.</span>
+      </div>
+
+      <div class="actions" style="justify-content:flex-start;">
+        <button class="btn btn-ghost" id="refreshListBtn" type="button">Refrescar lista</button>
+      </div>
+
+      <div class="list" id="quickList"></div>
+    </div>
+
+  </div>
+
+  <!-- Your existing logic -->
+  <script type="module" src="./admin.js"></script>
+
+  <!-- ✅ UI helpers (no changes needed in admin.js) -->
+  <script>
+    // Visible "Cargar" buttons just trigger the hidden originals that admin.js already uses
+    document.getElementById("loadClassBtnVisible").addEventListener("click", () => {
+      document.getElementById("loadClassBtn").click();
+    });
+
+    document.getElementById("loadQuestionBtnVisible").addEventListener("click", () => {
+      document.getElementById("loadQuestionBtn").click();
+    });
+
+    // One button to save everything in sequence using the existing handlers in admin.js
+    document.getElementById("saveAllBtn").addEventListener("click", () => {
+      // Order matters: module -> class -> question -> answers
+      document.getElementById("saveModuleBtn").click();
+
+      // small delays so async writes don't collide visually
+      setTimeout(() => document.getElementById("saveClassBtn").click(), 200);
+      setTimeout(() => document.getElementById("saveQuestionBtn").click(), 450);
+      setTimeout(() => document.getElementById("saveAnswersBtn").click(), 750);
+    });
+  </script>
+</body>
+</html>

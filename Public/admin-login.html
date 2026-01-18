@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login de Administrador ▢ La Escuela del Espíritu Santo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(to bottom right, #bcdcff, #e5f3ff);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: rgba(255,255,255,.9);
+      border-radius: 1rem;
+      padding: 1.5rem 1.4rem 1.2rem;
+      width: min(360px, 100%);
+      box-shadow: 0 10px 25px rgba(15,23,42,.12);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.25rem;
+      color: #1e3a8a;
+    }
+    label {
+      display: block;
+      font-size: .78rem;
+      margin-top: .5rem;
+      margin-bottom: .25rem;
+      color: #0f172a;
+    }
+    input {
+      width: 100%;
+      border: 1px solid rgba(15,23,42,.12);
+      border-radius: .5rem;
+      padding: .45rem .5rem;
+      font-size: .8rem;
+    }
+    button {
+      width: 100%;
+      margin-top: .9rem;
+      background: linear-gradient(120deg, #f97316, #fbbf24);
+      border: none;
+      border-radius: .6rem;
+      padding: .5rem .8rem;
+      font-weight: 600;
+      color: #0f172a;
+      cursor: pointer;
+    }
+    .error {
+      margin-top: .5rem;
+      background: rgba(248,113,113,.08);
+      border: 1px solid rgba(254,202,202,.3);
+      border-radius: .45rem;
+      padding: .35rem .5rem;
+      font-size: .7rem;
+      color: #b91c1c;
+      display: none;
+    }
+    .muted {
+      font-size: .65rem;
+      color: rgba(15,23,42,.65);
+      margin-top: .75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Login de administrador</h1>
+    <p class="muted">Solo correos autorizados podrán entrar.</p>
+
+    <label for="email">Correo</label>
+    <input id="email" type="email" placeholder="admin@tusitio.com" />
+
+    <label for="password">Contraseña</label>
+    <input id="password" type="password" placeholder="••••••••" />
+
+    <button id="loginBtn">Entrar al panel</button>
+
+    <div id="errorBox" class="error"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+    // 🔥 CONFIG NUEVA — escuela-ees
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
+      authDomain: "escuela-ees.firebaseapp.com",
+      projectId: "escuela-ees",
+      storageBucket: "escuela-ees.firebasestorage.app",
+      messagingSenderId: "514513764908",
+      appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const ADMIN_EMAILS = ["iattv7@gmail.com"];
+
+    const emailInput = document.getElementById("email");
+    const passInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const errorBox = document.getElementById("errorBox");
+
+    loginBtn.addEventListener("click", async () => {
+      errorBox.style.display = "none";
+
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passInput.value;
+
+      if (!email || !password) {
+        errorBox.textContent = "Escribe correo y contraseña.";
+        errorBox.style.display = "block";
+        return;
+      }
+
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+
+        if (!ADMIN_EMAILS.includes(email)) {
+          await signOut(auth);
+          errorBox.textContent = "Este correo no tiene permiso de administrador.";
+          errorBox.style.display = "block";
+          return;
+        }
+
+        localStorage.setItem("admin-ok", "yes");
+        setTimeout(() => {
+          window.location.href = "admin-dashboard.html";
+        }, 300);
+
+      } catch (err) {
+        console.error(err);
+        errorBox.textContent = "No se pudo iniciar sesión: " + (err.message || "");
+        errorBox.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

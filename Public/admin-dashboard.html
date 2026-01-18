@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard – La Escuela del Espíritu Santo</title>
+
+  <style>
+    body{
+      margin:0;
+      font-family: "Times New Roman", Times, serif;
+      background:#0b1220;
+      color:#e5e7eb;
+      padding:18px;
+    }
+    .wrap{max-width:1200px;margin:0 auto;}
+    h1{margin:0 0 8px;font-size:28px;}
+    .muted{color:#9ca3af;margin:0 0 16px;}
+    .topbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .card{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:14px;
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .small{font-size:13px;color:#9ca3af;}
+    input{
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      color:#e5e7eb;
+      border-radius:10px;
+      padding:10px 10px;
+      min-width:240px;
+      font-family: "Times New Roman", Times, serif;
+    }
+    .btn{
+      border:none;
+      border-radius:10px;
+      padding:10px 12px;
+      font-weight:700;
+      cursor:pointer;
+      font-family: "Times New Roman", Times, serif;
+    }
+    .btn-primary{background:#f59e0b;color:#111827;}
+    .btn-ghost{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color:#e5e7eb;
+    }
+    .btn-danger{background:#ef4444;color:white;}
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+      overflow:hidden;
+      border-radius:12px;
+    }
+    th, td{
+      border-bottom:1px solid rgba(255,255,255,.08);
+      padding:10px;
+      text-align:left;
+      vertical-align:top;
+      font-size:14px;
+    }
+    th{
+      color:#cbd5e1;
+      font-weight:700;
+      background:rgba(255,255,255,.03);
+    }
+    tr:hover td{
+      background:rgba(255,255,255,.02);
+    }
+
+    .pending-box{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding:8px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03);
+    }
+    .btn-sm{
+      border:none;
+      border-radius:10px;
+      padding:7px 10px;
+      font-weight:700;
+      cursor:pointer;
+      font-family: "Times New Roman", Times, serif;
+      font-size:13px;
+    }
+    .btn-approve{background:#22c55e;color:#111827;}
+    .btn-reject{background:#ef4444;color:white;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <div class="muted">Usuarios, pagos directos, módulos pagados y tests aprobados.</div>
+        <div class="small" id="authStatus">Cargando sesión…</div>
+      </div>
+
+      <div class="row">
+        <a class="btn btn-ghost" href="./admin-module.html">Editar Modulos / Clases / Preguntas</a>
+        <button class="btn btn-danger" id="logoutBtn" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <label class="small" style="margin-right:6px;">Buscar:</label>
+          <input id="searchInput" placeholder="email o nombre..." />
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Nombre</th>
+            <th>WhatsApp / País</th>
+            <th>Módulos pagados</th>
+            <th>Tests aprobados</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="6">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>

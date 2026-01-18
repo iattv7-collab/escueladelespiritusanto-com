@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Materiales – La Escuela del Espíritu Santo</title>
+  
+  <style>
+    /* (UNCHANGED CSS) */
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(to bottom, #1e3a8a 0%, #3b82f6 40%, #93c5fd 100%);
+      min-height: 100vh;
+    }
+    .page-shell {
+      background: rgba(2,6,23,0.65);
+      min-height: 100vh;
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.25rem .5rem;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .nav {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      color: #fff;
+    }
+    .brand strong { color:#fff; }
+    .brand small { color: rgba(226,232,240,.7); }
+    .brand a { color: #fbbf24; text-decoration:none; font-size:.75rem; }
+    .header-right { display:flex; gap:.6rem; align-items:center; }
+    .user-chip { font-size:.7rem; color:rgba(226,232,240,.85); }
+    .btn {
+      background: linear-gradient(120deg, #f97316, #fbbf24);
+      color: #020617;
+      border: none;
+      border-radius: .6rem;
+      padding: .35rem .7rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.0rem 1.25rem 3rem;
+      color: #fff;
+    }
+
+    .materials-layout {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .modules-sidebar {
+      width: 230px;
+      max-width: 260px;
+      background: rgba(15,23,42,.78);
+      border-radius: .9rem;
+      padding: .85rem .8rem;
+      border: 1px solid rgba(251,191,36,.35);
+    }
+
+    .sidebar-title {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(251,191,36,.9);
+      margin: 0 0 .5rem;
+    }
+
+    .module-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+
+    .module-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .35rem .55rem;
+      border-radius: .6rem;
+      background: rgba(251,191,36,0.18);
+      border: 1px solid rgba(251,191,36,0.35);
+      color: #fff8e1;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, transform .1s ease;
+    }
+
+    .module-nav-item:hover {
+      background: rgba(251,191,36,0.30);
+      transform: translateY(-1px);
+    }
+
+    .module-nav-item.active {
+      border-color: #fbbf24;
+      background: rgba(251,191,36,0.40);
+    }
+
+    .module-nav-item.completed {
+      background: rgba(34,197,94,.25);
+      border-color: rgba(34,197,94,.55);
+    }
+
+    .module-nav-item.locked {
+      opacity: .45;
+      cursor: default;
+      transform: none;
+    }
+
+    .module-nav-label {
+      font-weight: 500;
+    }
+
+    .module-nav-status {
+      font-size: .7rem;
+      opacity: .9;
+    }
+
+    .module-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .muted { color: rgba(226,232,240,.8); }
+
+    #moduleDetail {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .module-header-main {
+      margin-bottom: .25rem;
+    }
+
+    .module-header-main h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .module-subnote {
+      font-size: .8rem;
+      color: rgba(226,232,240,.7);
+    }
+
+    .activate-panel {
+      background: rgba(15,23,42,.9);
+      border: 1px solid rgba(251,191,36,.4);
+      border-radius: .6rem;
+      padding: .55rem .6rem;
+      margin-bottom: .4rem;
+      font-size: .8rem;
+    }
+
+    .class-list {
+      display: grid;
+      gap: .45rem;
+    }
+
+    .class-item {
+      background: rgba(15,23,42,.35);
+      border: 1px solid rgba(255,255,255,.015);
+      border-radius: .5rem;
+      padding: .4rem .45rem .35rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:.6rem;
+    }
+
+    .class-item.completed {
+      background: rgba(22,163,74,.22);
+      border: 1px solid rgba(22,163,74,.3);
+    }
+
+    .class-title { font-size:.8rem; }
+
+    .class-actions { display:flex; gap:.35rem; align-items:center; }
+
+    .small-btn {
+      background: rgba(248,250,252,.1);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: .4rem;
+      padding: .2rem .55rem;
+      font-size: .68rem;
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .small-btn:hover { background: rgba(248,250,252,.2); }
+
+    .lock { font-size:.8rem; opacity:.9; }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem 1.25rem 2.2rem;
+      color: rgba(226,232,240,.55);
+      font-size: .73rem;
+      margin-top: auto;
+    }
+    footer .footer-btn {
+      display: inline-block;
+      margin-bottom: .6rem;
+      background:linear-gradient(120deg, #f97316, #fbbf24);
+      color:#020617;
+      border-radius:.6rem;
+      padding:.45rem .95rem;
+      text-decoration:none;
+      font-weight:600;
+    }
+
+    #resetProgress {
+      display: none !important;
+    }
+
+    .video-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+    }
+    .video-modal {
+      background: #020617;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 1rem;
+      max-width: 960px;
+      width: min(960px, 100%);
+      aspect-ratio: 16 / 9;
+      position: relative;
+      overflow: hidden;
+    }
+    .video-modal iframe { width:100%; height:100%; border:none; }
+    .video-modal-close {
+      position:absolute; top:.5rem; right:.5rem;
+      background: rgba(15,23,42,.8);
+      border:1px solid rgba(255,255,255,.2);
+      color:#fff;
+      border-radius:999px;
+      width:30px; height:30px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
+    }
+
+    @media (max-width: 840px) {
+      .materials-layout {
+        flex-direction: column;
+      }
+      .modules-sidebar {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-shell">
+    <header>
+      <div class="nav">
+        <div class="brand">
+          <strong>La Escuela del Espíritu Santo</strong><br />
+          <small>Ministerio Yo Soy La Vid Verdadera</small><br />
+          <a href="https://iattv.org" target="_blank">IATTV.ORG</a>
+        </div>
+        <div class="header-right">
+          <span id="userEmail" class="user-chip"></span>
+          <button id="logoutBtn" class="btn" type="button">Cerrar sesión</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="materials-layout">
+        <aside class="modules-sidebar">
+          <h2 class="sidebar-title">Módulos</h2>
+          <div id="modulesSidebar" class="module-nav-list"></div>
+        </aside>
+
+        <section class="module-content">
+          <div>
+            <h1>Materiales de estudio</h1>
+            <p class="muted">
+              Ve la clase, luego presenta la prueba. Al aprobar todas las clases, se abre el siguiente módulo.
+            </p>
+            <div id="loadingMsg" class="muted">Cargando tus módulos…</div>
+          </div>
+
+          <div id="moduleDetail"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <a class="footer-btn" href="./contacto.html">Contáctanos</a><br />
+      © <span id="year"></span> La Escuela del Espíritu Santo – Ministerio Yo Soy La Vid Verdadera
+    </footer>
+  </div>
+
+  <div class="video-modal-backdrop" id="videoModal">
+    <div class="video-modal">
+      <button class="video-modal-close" id="closeModalBtn">×</button>
+      <iframe id="videoFrame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <script type="module">
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    let MODULE_COUNT = 0; // will be loaded from Firestore
+    let CLASSES_PER_MODULE = 0; // per module, loaded from Firestore
+
+    
+
+    const IS_DEV = false;
+
+    const userEmailSpan = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const modulesSidebar = document.getElementById("modulesSidebar");
+    const moduleDetail = document.getElementById("moduleDetail");
+    const loadingMsg = document.getElementById("loadingMsg");
+    const videoModal = document.getElementById("videoModal");
+    const videoFrame = document.getElementById("videoFrame");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+
+    /* --------------------------
+       DEV MODE BLOCK (unchanged)
+    --------------------------- */
+
+    if (IS_DEV) {
+      console.warn("🔧 DEV MODE ACTIVE — Firebase disabled, full access.");
+
+      userEmailSpan.textContent = "dev@example.com";
+      loadingMsg.style.display = "none";
+
+      let devSelectedModule = 1;
+
+      function renderSidebarDev() {
+        modulesSidebar.innerHTML = "";
+        for (let m = 1; m <= MODULE_COUNT; m++) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "module-nav-item active completed";
+          if (m !== devSelectedModule) item.classList.remove("active");
+
+          item.innerHTML = `
+            <span class="module-nav-label">Módulo ${m}</span>
+            <span class="module-nav-status">DEV</span>
+          `;
+
+          item.addEventListener("click", () => {
+            devSelectedModule = m;
+            renderSidebarDev();
+            renderModuleDetailDev(m);
+          });
+
+          modulesSidebar.appendChild(item);
+        }
+      }
+
+      function renderModuleDetailDev(m) {
+        moduleDetail.innerHTML = `
+          <h2>Módulo ${m} (DEV)</h2>
+          <div class="module-subnote">Vista de desarrollo – todo desbloqueado.</div>
+        `;
+
+        const classList = document.createElement("div");
+        classList.className = "class-list";
+
+        for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
+          classList.innerHTML += `
+            <div class="class-item">
+              <div class="class-title">Clase ${c}</div>
+              <div class="class-actions">
+                <button class="small-btn" data-video="${m}-${c}">Ver clase</button>
+                <button class="small-btn" onclick="window.open('./test-${m}-${c}.html','_blank')">Tomar prueba</button>
+              </div>
+            </div>
+          `;
+        }
+        moduleDetail.appendChild(classList);
+      }
+
+      function openVideoModalDev(classKey) {
+        const url = videos[classKey];
+        if (!url) return alert("Esta clase no tiene video.");
+        videoFrame.src = url + (url.includes("?") ? "&autoplay=1" : "?autoplay=1");
+        videoModal.style.display = "flex";
+      }
+
+      /* REQUIRED FIX */
+      window.openVideoModal = openVideoModalDev;
+
+      document.body.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-video]");
+        if (btn) openVideoModalDev(btn.dataset.video);
+      });
+
+      closeModalBtn.addEventListener("click", () => {
+        videoFrame.src = "";
+        videoModal.style.display = "none";
+      });
+
+      videoModal.addEventListener("click", (e) => {
+        if (e.target === videoModal) {
+          videoFrame.src = "";
+          videoModal.style.display = "none";
+        }
+      });
+
+      renderSidebarDev();
+      renderModuleDetailDev(devSelectedModule);
+      throw new Error("DEV_MODE_STOP");
+    }
+
+    /* ------------------------------------------
+       🔥 UPDATED FIREBASE CONFIG + SDK VERSION
+    ------------------------------------------- */
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      collection,
+      getDocs,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
+      authDomain: "escuela-ees.firebaseapp.com",
+      projectId: "escuela-ees",
+      storageBucket: "escuela-ees.firebasestorage.app",
+      messagingSenderId: "514513764908",
+      appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    /* -----------------------
+       MAIN APP FUNCTIONALITY
+    ------------------------ */
+
+    const modulePrices = { 1:25, 2:25, 3:25, 4:25, 5:30, 6:30 };
+
+    let currentUser = null;
+    let currentProgress = null;
+    let currentVideoKey = null;
+    let selectedModule = 1;
+
+    function emptyProgress() {
+      return {
+        paidModules: {},
+        paymentPending: {},
+        passedTests: {},
+        videoWatched: {}
+      };
+    }
+
+    async function loadProgress(uid) {
+      const ref = doc(db, "userProgress", uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (!data.paidModules) data.paidModules = {};
+        if (!data.paymentPending) data.paymentPending = {};
+        if (!data.passedTests) data.passedTests = {};
+        if (!data.videoWatched) data.videoWatched = {};
+        return data;
+      }
+      const base = emptyProgress();
+      await setDoc(ref, base);
+      return base;
+    }
+
+    async function saveProgress(uid, data) {
+      await setDoc(doc(db, "userProgress", uid), data, { merge: true });
+    }
+
+    let modulesData = []; // [{id,title,order,price,classes:[{id,title,order,videoUrl}]}]
+
+async function loadModulesFromFirestore() {
+  // Firestore structure expected:
+  // modules (collection)
+  //   moduleDoc (title, order, price)
+  //   modules/<moduleId>/classes (subcollection)
+  //     classDoc (title, order, videoUrl)
+
+  const modsSnap = await getDocs(
+    query(collection(db, "modules"), orderBy("order", "asc"))
+  );
+
+  const mods = [];
+
+  for (const modDoc of modsSnap.docs) {
+    const mod = { id: modDoc.id, ...modDoc.data(), classes: [] };
+
+    const classesSnap = await getDocs(
+      query(collection(db, "modules", modDoc.id, "classes"), orderBy("order", "asc"))
+    );
+
+    mod.classes = classesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    mods.push(mod);
+  }
+
+  modulesData = mods;
+}
+
+
+    function isModuleUnlocked(progress, m) {
+      if (m === 1) return true;
+      const prev = m - 1;
+      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
+        if (!progress.passedTests[`${prev}-${c}`]) return false;
+      }
+      return true;
+    }
+
+    function isModuleFullyCompleted(progress, m) {
+      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
+        if (!progress.passedTests[`${m}-${c}`]) return false;
+      }
+      return true;
+    }
+
+    function isClassUnlocked(progress, m, c) {
+      if (!progress.paidModules[m]) return false;
+      if (c === 1) return true;
+      return !!progress.passedTests[`${m}-${c-1}`];
+    }
+
+    function getActiveModule(progress) {
+      for (let m = 1; m <= MODULE_COUNT; m++) {
+        if (isModuleUnlocked(progress, m) && !isModuleFullyCompleted(progress, m)) return m;
+      }
+      return MODULE_COUNT;
+    }
+
+    function renderSidebar() {
+      modulesSidebar.innerHTML = "";
+      const p = currentProgress;
+
+      for (let m = 1; m <= MODULE_COUNT; m++) {
+        const unlocked = isModuleUnlocked(p, m);
+        const completed = isModuleFullyCompleted(p, m);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "module-nav-item";
+        if (completed) btn.classList.add("completed");
+        if (!unlocked) btn.classList.add("locked");
+        if (m === selectedModule) btn.classList.add("active");
+
+        btn.innerHTML = `
+          <span class="module-nav-label">Módulo ${m}</span>
+          <span class="module-nav-status">${completed ? "Completado" : unlocked ? "Disponible" : "Bloqueado"}</span>
+        `;
+
+        if (unlocked) {
+          btn.addEventListener("click", () => {
+            selectedModule = m;
+            renderAll();
+          });
+        }
+
+        modulesSidebar.appendChild(btn);
+      }
+    }
+
+    function renderModuleDetail(m) {
+      const p = currentProgress;
+
+      moduleDetail.innerHTML = `
+        <div class="module-header-main">
+          <h2>Módulo ${m}</h2>
+          <div class="module-subnote">
+            ${!isModuleUnlocked(p, m) ? "Este módulo se abrirá cuando completes el anterior."
+            : isModuleFullyCompleted(p, m)
+            ? "Módulo completado."
+            : "Avanza clase por clase."}
+          </div>
+        </div>
+      `;
+
+      const modulePaid = !!p.paidModules[m];
+      const modulePending = !!p.paymentPending[m];
+      
+      if (!modulePaid) {
+        moduleDetail.innerHTML += `
+          <div class="activate-panel">
+            <strong>Activar este módulo</strong>
+            <p style="margin-top:.25rem;font-size:.78rem;">
+              Aporte sugerido: $${modulePrices[m]} USD
+            </p>
+            <p style="margin-top:.35rem;font-size:.78rem;">
+              ${
+                modulePending
+                  ? "<span style='margin-left:.4rem;'>Pago en revisión</span>"
+                  : `<a class="small-btn" href="./pago.html?mod=${m}">Ir a la página de aporte</a>`
+              }
+            </p>
+          </div>
+        `;
+      }
+      const classList = document.createElement("div");
+      classList.className = "class-list";
+
+      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
+        const key = `${m}-${c}`;
+        const passed = !!p.passedTests[key];
+        const watched = !!p.videoWatched[key];
+        const unlockedClass = modulePaid && isClassUnlocked(p, m, c);
+
+        const item = document.createElement("div");
+        item.className = "class-item";
+        if (passed) item.classList.add("completed");
+
+        let controls = "";
+
+        if (!modulePaid) {
+          controls = `<span class="lock">Activa el módulo para ver esta clase.</span>`;
+        } else if (unlockedClass) {
+          controls = `
+            <button class="small-btn" onclick="openVideoModal('${key}')">
+              ${passed ? "Ver otra vez" : "Ver clase"}
+            </button>
+            ${
+              passed
+                ? `<button class="small-btn" onclick="openTestPage('${key}')">Prueba aprobada</button>`
+                : watched
+                ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
+                : `<span class="lock">Ver la clase primero.</span>`
+            }
+          `;
+        } else {
+          controls = `<span class="lock">🔒</span>`;
+        }
+
+        item.innerHTML = `
+          <div class="class-title">Clase ${c}</div>
+          <div class="class-actions">${controls}</div>
+        `;
+
+        classList.appendChild(item);
+      }
+
+      moduleDetail.appendChild(classList);
+    }
+
+    function openTestPage(key) {
+      // key comes as "m-c" like "1-1"
+      const [m, c] = String(key).split("-");
+      window.location.href = `./test.html?m=${encodeURIComponent(m)}&c=${encodeURIComponent(c)}`;
+     }
+
+
+
+    /* REQUIRED FIX */
+    window.openTestPage = openTestPage;
+    window.openVideoModal = openVideoModal;
+
+    function renderAll() {
+  loadingMsg.style.display = "none";
+  renderSidebar();
+
+  // ✅ If there are no modules in Firestore yet
+  if (!modulesData || modulesData.length === 0) {
+    moduleDetail.innerHTML = `
+      <div class="module-header-main">
+        <h2>No hay módulos disponibles</h2>
+        <div class="module-subnote">
+          Aún no se han creado módulos en el sistema.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // ✅ If selectedModule is invalid, force first module
+  const exists = modulesData.some(m => String(m.id) === String(selectedModule));
+  if (!exists) selectedModule = modulesData[0].id;
+
+  renderModuleDetail(selectedModule);
+}
+
+
+    function openVideoModal(classKey) {
+      const url = videos[classKey];
+      if (!url) return alert("Esta clase no tiene video.");
+      currentVideoKey = classKey;
+      videoFrame.src = url + (url.includes("?") ? "&autoplay=1" : "?autoplay=1");
+      videoModal.style.display = "flex";
+    }
+
+     async function closeVideoModalReal() {
+       // Cerrar modal y detener video
+       videoModal.style.display = "none";
+       videoFrame.src = "";
+
+       if (currentVideoKey) {
+        // Marcar clase como vista
+        currentProgress.videoWatched[currentVideoKey] = true;
+
+        // Guardar en Firestore
+        await saveProgress(currentUser.uid, currentProgress);
+
+        // Limpiar referencia temporal
+        const justWatched = currentVideoKey;
+        currentVideoKey = null;
+
+        // Volver a renderizar la página
+        renderAll();
+
+        // Mostrar mensaje claro al estudiante
+        alert("La clase ha sido registrada como vista. Ahora puedes tomar la prueba.");
+      }
+    }
+   
+    closeModalBtn.addEventListener("click", closeVideoModalReal);
+    videoModal.addEventListener("click", (e) => {
+      if (e.target === videoModal) closeVideoModalReal();
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "./login.html";
+        return;
+      }
+      currentUser = user;
+      userEmailSpan.textContent = user.email;
+
+      await loadModulesFromFirestore();
+      currentProgress = await loadProgress(user.uid);
+      selectedModule = getActiveModule(currentProgress);
+      renderAll();
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "./login.html";
+    });
+
+  </script>
+</body>
+</html>

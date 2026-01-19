@@ -577,9 +577,12 @@
     }
 
     function goToPayment(mIndex) {
-      window.location.href = `./pago.html?mod=${encodeURIComponent(mIndex)}`;
-    }
-    window.goToPayment = goToPayment;
+        // mIndex is 0-based in materiales, pago expects 1-based module number
+        const moduleNumber = Number(mIndex) + 1;
+        window.location.href = `./pago.html?m=${encodeURIComponent(moduleNumber)}`;
+      }
+      window.goToPayment = goToPayment;
+
 
     function renderSidebar() {
       modulesSidebar.innerHTML = "";

@@ -57,6 +57,14 @@
       font-size: .75rem;
       line-height: 1.4;
     }
+    .note {
+      background: rgba(148,163,184,.08);
+      border: 1px solid rgba(148,163,184,.12);
+      border-radius: .75rem;
+      padding: .75rem .8rem;
+      font-size: .8rem;
+      color: #cbd5f5;
+    }
     #loadingOverlay {
       position: fixed;
       inset: 0;
@@ -86,9 +94,7 @@
       margin: 0 auto .3rem;
       animation: spin 0.7s linear infinite;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -98,6 +104,8 @@
       Elige cómo quieres pagar este módulo. Con tarjeta se activa automáticamente.
       Si pagas por Zelle o Cash App, envía el comprobante por WhatsApp.
     </p>
+
+    <div id="noteBox" class="note" style="display:none;"></div>
 
     <div id="payBox" class="box" style="display:none;">
       <p id="moduleLabel" class="muted"></p>
@@ -159,15 +167,20 @@
 
     const params = new URLSearchParams(window.location.search);
 
-    // Accept BOTH: ?m=2 OR ?mod=2 (and default to 1)
-    const rawMod = params.get("m") ?? params.get("mod");
+    const rawMod =
+      params.get("m") ??
+      params.get("mod") ??
+      params.get("module") ??
+      params.get("modulo");
+
     const moduleToPay = rawMod ? parseInt(rawMod, 10) : 1;
 
-    // IMPORTANT: materiales.html uses 0-based keys: paidModules[mIndex]
-    const moduleIndex = Number.isFinite(moduleToPay) ? (moduleToPay - 1) : 0;
 
     const MODULE_COUNT = 6;
     const CLASSES_PER_MODULE = 4;
+
+    // IMPORTANT: materiales.html uses 0-based keys: paidModules[mIndex]
+    const moduleIndex = Number.isFinite(moduleToPay) ? (moduleToPay - 1) : 0;
 
     const payBox = document.getElementById("payBox");
     const moduleLabel = document.getElementById("moduleLabel");
@@ -176,6 +189,7 @@
     const whatsappBtn = document.getElementById("whatsappBtn");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const loadingText = document.getElementById("loadingText");
+    const noteBox = document.getElementById("noteBox");
 
     let currentUserName = "";
     let currentUserEmail = "";
@@ -230,10 +244,8 @@
     function showOverlay() { loadingOverlay.style.display = "flex"; }
     function hideOverlay() { loadingOverlay.style.display = "none"; }
 
-    // Keeps your existing logic: module 1 is always unlocked;
-    // modules 2+ require ALL tests passed from previous module.
-    function isModuleUnlocked(progress, moduleNumber) {
-      if (moduleNumber === 1) return true;
+    function prevModuleComplete(progress, moduleNumber) {
+      if (moduleNumber <= 1) return true;
       const prev = moduleNumber - 1;
       for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
         const key = `${prev}-${c}`;
@@ -250,7 +262,7 @@
       if (user.displayName) currentUserName = user.displayName;
       if (user.email) currentUserEmail = user.email;
 
-      // Basic param validation
+      // Param validation
       if (!Number.isFinite(moduleToPay) || moduleToPay < 1 || moduleToPay > MODULE_COUNT) {
         window.location.href = "./materiales.html";
         return;
@@ -264,13 +276,19 @@
       progress.passedTests ??= {};
       progress.videoWatched ??= {};
 
-      // IMPORTANT: use 0-based keys to match materiales.html
       const alreadyPaid = !!progress.paidModules[moduleIndex];
-      const unlocked = isModuleUnlocked(progress, moduleToPay);
 
-      if (alreadyPaid || !unlocked) {
+      // ✅ Only block if already paid
+      if (alreadyPaid) {
         window.location.href = "./materiales.html";
         return;
+      }
+
+      // ✅ Optional note if they haven't completed previous module yet (DOES NOT BLOCK)
+      if (!prevModuleComplete(progress, moduleToPay)) {
+        noteBox.style.display = "block";
+        noteBox.textContent =
+          "Nota: Aunque puedas pagar este módulo ahora, el sistema puede seguir pidiéndote terminar el módulo anterior para avanzar en el orden normal.";
       }
 
       moduleLabel.textContent = "Estás activando el Módulo " + moduleToPay;
@@ -279,7 +297,9 @@
       markPendingBtn.addEventListener("click", async () => {
         progress.paymentPending[moduleIndex] = true; // 0-based
         await setDoc(ref, progress, { merge: true });
-        window.location.href = "./materiales.html";
+
+        markPendingBtn.disabled = true;
+        markPendingBtn.textContent = "Enviado ✅ (pendiente de revisión)";
       });
     });
   </script>

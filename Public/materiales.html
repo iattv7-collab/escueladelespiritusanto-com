@@ -189,13 +189,9 @@
       color: rgba(226, 232, 240, .7);
     }
 
+    /* ✅ Removed activate panel usage; keeping class in case you re-use later, but it will not render */
     .activate-panel {
-      background: rgba(15, 23, 42, .9);
-      border: 1px solid rgba(251, 191, 36, .4);
-      border-radius: .6rem;
-      padding: .55rem .6rem;
-      margin-bottom: .4rem;
-      font-size: .8rem;
+      display: none !important;
     }
 
     .class-list {
@@ -241,10 +237,40 @@
       text-decoration: none;
       cursor: pointer;
       white-space: nowrap;
+      font-family: system-ui, sans-serif;
     }
 
     .small-btn:hover {
       background: rgba(248, 250, 252, .2);
+    }
+
+    /* ✅ Disabled / locked look for test button */
+    .small-btn:disabled,
+    .small-btn.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      background: rgba(148, 163, 184, .10);
+      border-color: rgba(148, 163, 184, .18);
+    }
+
+    .small-btn:disabled:hover,
+    .small-btn.disabled:hover {
+      background: rgba(148, 163, 184, .10);
+    }
+
+    /* ✅ Enabled test button uses the "green active" feel */
+    .small-btn.test-ready {
+      background: rgba(34, 197, 94, .20);
+      border: 1px solid rgba(34, 197, 94, .45);
+    }
+
+    .small-btn.test-ready:hover {
+      background: rgba(34, 197, 94, .30);
+    }
+
+    .small-btn.test-passed {
+      background: rgba(34, 197, 94, .28);
+      border: 1px solid rgba(34, 197, 94, .55);
     }
 
     .lock {
@@ -343,7 +369,12 @@
           <a href="https://iattv.org" target="_blank">IATTV.ORG</a>
         </div>
         <div class="header-right">
+          <a href="./index.html" class="btn" style="background: rgba(255,255,255,.10); color:#fff; border:1px solid rgba(255,255,255,.12);">
+            Volver al inicio
+          </a>
+
           <span id="userEmail" class="user-chip"></span>
+
           <button id="logoutBtn" class="btn" type="button">Cerrar sesión</button>
         </div>
       </div>
@@ -473,7 +504,6 @@
       try {
         modsSnap = await getDocs(query(collection(db, "modules"), orderBy("order", "asc")));
       } catch (e) {
-        // fallback if "order" field doesn't exist in some environments
         modsSnap = await getDocs(collection(db, "modules"));
       }
 
@@ -492,11 +522,9 @@
         }
 
         mod.classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
         mods.push(mod);
       }
 
-      // Sort robustly (in case fallback used)
       mods.sort((a, b) => (Number(a.order) || 9999) - (Number(b.order) || 9999));
       mods.forEach((m, idx) => {
         m._index = idx + 1;
@@ -532,7 +560,6 @@
       const prev = getModuleByIndex(mIndex - 1);
       if (!prev) return false;
 
-      // Must pass all tests in previous module
       for (const cls of prev.classes) {
         const key = classKey(mIndex - 1, cls._index);
         if (!progress.passedTests[key]) return false;
@@ -565,24 +592,21 @@
     }
 
     function getActiveModuleIndex(progress) {
-      // First unlocked module that isn't fully completed
       for (const mod of modulesData) {
         const mIndex = mod._index;
         if (isModuleUnlocked(progress, mIndex) && !isModuleFullyCompleted(progress, mIndex)) {
           return mIndex;
         }
       }
-      // fallback to last module
       return modulesData.length ? modulesData[modulesData.length - 1]._index : 1;
     }
 
+    // ✅ mIndex is 1-based here (module number). Keep it simple and consistent.
     function goToPayment(mIndex) {
-        // mIndex is 0-based in materiales, pago expects 1-based module number
-        const moduleNumber = Number(mIndex) + 1;
-        window.location.href = `./pago.html?m=${encodeURIComponent(moduleNumber)}`;
-      }
-      window.goToPayment = goToPayment;
-
+      const moduleNumber = Number(mIndex);
+      window.location.href = `./pago.html?m=${encodeURIComponent(moduleNumber)}`;
+    }
+    window.goToPayment = goToPayment;
 
     function renderSidebar() {
       modulesSidebar.innerHTML = "";
@@ -638,42 +662,17 @@
           <h2>Módulo ${mIndex}</h2>
           <div class="module-subnote">
             ${!moduleUnlocked ? "Este módulo se abrirá cuando completes el anterior."
-          : moduleCompleted ? "Módulo completado."
-            : "Avanza clase por clase."}
+              : moduleCompleted ? "Módulo completado."
+              : "Avanza clase por clase."}
           </div>
         </div>
       `;
 
-
-
       const modulePaid = !!p.paidModules[mIndex];
-      const modulePending = !!p.paymentPending[mIndex];
-
-      // Show activate panel if not paid (as you had)
-      if (!modulePaid) {
-        const price = (mod.price != null ? mod.price : modulePricesFallback[mIndex]);
-        moduleDetail.innerHTML += `
-          <div class="activate-panel">
-            <strong>Activar este módulo</strong>
-            <p style="margin-top:.25rem;font-size:.78rem;">
-              Aporte sugerido: $${price || ""} USD
-            </p>
-            <p style="margin-top:.35rem;font-size:.78rem;">
-              ${modulePending
-            ? "<span style='margin-left:.4rem;'>Pago en revisión</span>"
-            : `<a class="small-btn" href="./pago.html?m=${encodeURIComponent(mIndex + 1)}">Ir a la página de aporte</a>`
-          }
-            </p>
-          </div>
-        `;
-      }
-
-
 
       const classList = document.createElement("div");
       classList.className = "class-list";
 
-      // If module itself is locked, show classes but no actions
       for (const cls of mod.classes) {
         const cIndex = cls._index;
         const key = classKey(mIndex, cIndex);
@@ -693,26 +692,32 @@
         if (!moduleUnlocked) {
           controls = `<span class="lock">🔒</span>`;
         } else if (!modulePaid) {
-          // ✅ Your rule: clicking "Ver clase" should open payment if not paid
+          // ✅ ONLY show "Ver clase" and send to pago. No other text.
           controls = `
             <button class="small-btn" onclick="goToPayment('${mIndex}')">Ver clase</button>
-            ${modulePending ? `<span class="lock">Pago en revisión</span>` : `<span class="lock">Activa el módulo</span>`}
           `;
         } else if (unlockedClass) {
-          // Paid + sequential access
+          // ✅ Paid + sequential access
+          const watchBtnLabel = passed ? "Ver otra vez" : "Ver clase";
+
+          // ✅ Test button always shown:
+          // - passed => green "Prueba aprobada"
+          // - watched => green "Tomar prueba"
+          // - not watched => disabled/gray "Tomar prueba"
+          let testBtn = "";
+          if (passed) {
+            testBtn = `<button class="small-btn test-passed" onclick="openTestPage('${key}')">Prueba aprobada</button>`;
+          } else if (watched) {
+            testBtn = `<button class="small-btn test-ready" onclick="openTestPage('${key}')">Tomar prueba</button>`;
+          } else {
+            testBtn = `<button class="small-btn" disabled>Tomar prueba</button>`;
+          }
+
           controls = `
-            <button class="small-btn" onclick="openVideoModal('${key}')">
-              ${passed ? "Ver otra vez" : "Ver clase"}
-            </button>
-            ${passed
-              ? `<button class="small-btn" onclick="openTestPage('${key}')">Prueba aprobada</button>`
-              : watched
-                ? `<button class="small-btn" onclick="openTestPage('${key}')">Tomar prueba</button>`
-                : `<span class="lock">Ver la clase primero.</span>`
-            }
+            <button class="small-btn" onclick="openVideoModal('${key}')">${watchBtnLabel}</button>
+            ${testBtn}
           `;
         } else {
-          // Paid but blocked by sequence
           controls = `<span class="lock">🔒</span>`;
         }
 
@@ -741,7 +746,6 @@
         return;
       }
 
-      // Guard: if selected module isn't unlocked, snap to active module
       if (!isModuleUnlocked(currentProgress, selectedModuleIndex)) {
         selectedModuleIndex = getActiveModuleIndex(currentProgress);
       }
@@ -754,34 +758,23 @@
       const [m, c] = String(key).split("-");
       window.location.href = `test.html?m=${encodeURIComponent(m)}&c=${encodeURIComponent(c)}`;
     }
-
     window.openTestPage = openTestPage;
-
-
-
-
-
 
     function toYouTubeEmbedUrl(url) {
       const raw = String(url || "").trim();
-
-      // If it already is an embed link, keep it
       if (raw.includes("youtube.com/embed/")) return raw;
 
       try {
         const u = new URL(raw);
 
-        // youtu.be/VIDEOID
         if (u.hostname.includes("youtu.be")) {
           const id = u.pathname.replace("/", "").trim();
           return `https://www.youtube.com/embed/${id}`;
         }
 
-        // youtube.com/watch?v=VIDEOID
         const v = u.searchParams.get("v");
         if (v) return `https://www.youtube.com/embed/${v}`;
 
-        // /shorts/VIDEOID or /live/VIDEOID
         const parts = u.pathname.split("/").filter(Boolean);
 
         const idxShorts = parts.indexOf("shorts");
@@ -793,15 +786,10 @@
         if (idxLive !== -1 && parts[idxLive + 1]) {
           return `https://www.youtube.com/embed/${parts[idxLive + 1]}`;
         }
-      } catch (e) {
-        // If it's not a valid URL, return as-is
-      }
+      } catch (e) { }
 
       return raw;
     }
-
-
-
 
     function openVideoModal(classKeyStr) {
       const cls = getClassByKey(classKeyStr);
@@ -824,11 +812,9 @@
       videoFrame.src = "";
 
       if (currentVideoKey) {
-        // Mark as watched when modal is closed (your current behavior)
         currentProgress.videoWatched[currentVideoKey] = true;
         await saveProgress(currentUser.uid, currentProgress);
 
-        const justWatched = currentVideoKey;
         currentVideoKey = null;
 
         renderAll();
@@ -860,13 +846,11 @@
       await loadModulesFromFirestore();
       currentProgress = await loadProgress(user.uid);
 
-      // Start on the first active module (but user can click others only if unlocked)
       selectedModuleIndex = getActiveModuleIndex(currentProgress);
 
       renderAll();
     });
 
-    // DEV MODE (optional)
     if (IS_DEV) {
       console.warn("DEV MODE ACTIVE");
     }

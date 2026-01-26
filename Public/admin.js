@@ -69,17 +69,25 @@ async function initDashboardPage() {
 
   let renderedRows = [];
 
-  function safeLower(x){ return String(x || "").toLowerCase(); }
-  function listTrueKeys(obj){
+  function safeLower(x) { return String(x || "").toLowerCase(); }
+  function listTrueKeys(obj) {
     if (!obj || typeof obj !== "object") return "-";
     const keys = Object.keys(obj).filter(k => obj[k] === true);
     return keys.length ? keys.join(", ") : "-";
   }
-  function firstKey(obj){
+  function firstPendingModule(obj) {
     if (!obj || typeof obj !== "object") return null;
-    const keys = Object.keys(obj);
-    return keys.length ? keys[0] : null;
+
+    // Only keys explicitly set to true
+    const pending = Object.keys(obj)
+      .filter(k => obj[k] === true)
+      .map(k => parseInt(k, 10))
+      .filter(n => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+
+    return pending.length ? String(pending[0]) : null;
   }
+
 
   async function loadData() {
     usersTableBody.innerHTML = `<tr><td colspan="6">Cargando…</td></tr>`;
@@ -123,7 +131,7 @@ async function initDashboardPage() {
         <td class="action-cell">-</td>
       `;
 
-      const pendModule = firstKey(prog.paymentPending);
+      const pendModule = firstPendingModule(prog.paymentPending);
       if (pendModule) {
         const cell = tr.querySelector(".action-cell");
         cell.textContent = "";
@@ -135,30 +143,68 @@ async function initDashboardPage() {
         const btnA = document.createElement("button");
         btnA.className = "btn-sm btn-approve";
         btnA.textContent = "Aprobar";
+
+
         btnA.onclick = async () => {
           const ref = doc(db, "userProgress", uid);
           const snap = await getDoc(ref);
           const data = snap.exists() ? (snap.data() || {}) : {};
-          if (!data.paidModules) data.paidModules = {};
-          if (!data.paymentPending) data.paymentPending = {};
-          data.paidModules[String(pendModule)] = true;
-          delete data.paymentPending[String(pendModule)];
+
+          data.paidModules ??= {};
+          data.paymentPending ??= {};
+          data.passedTests ??= {};
+          data.videoWatched ??= {};
+
+          // ✅ pick the real pending module (true values only)
+          let pend = firstPendingModule(data.paymentPending);
+
+          // ✅ one-time repair: if old system wrote "0" pending, treat it as module 1
+          if (!pend && data.paymentPending["0"] === true) pend = "1";
+
+          if (!pend) {
+            alert("Este usuario no tiene pago pendiente válido.");
+            await loadData();
+            return;
+          }
+
+          // ✅ mark paid using 1-based module number
+          data.paidModules[String(pend)] = true;
+
+          // ✅ clear pending (and clean old key too)
+          delete data.paymentPending[String(pend)];
+          delete data.paymentPending["0"];
+
           await setDoc(ref, data, { merge: true });
           await loadData();
         };
 
+
+
+
         const btnR = document.createElement("button");
         btnR.className = "btn-sm btn-reject";
         btnR.textContent = "Rechazar";
+
+
         btnR.onclick = async () => {
           const ref = doc(db, "userProgress", uid);
           const snap = await getDoc(ref);
           const data = snap.exists() ? (snap.data() || {}) : {};
-          if (!data.paymentPending) data.paymentPending = {};
-          delete data.paymentPending[String(pendModule)];
+
+          data.paymentPending ??= {};
+
+          let pend = firstPendingModule(data.paymentPending);
+          if (!pend && data.paymentPending["0"] === true) pend = "1";
+
+          if (pend) delete data.paymentPending[String(pend)];
+          delete data.paymentPending["0"];
+
           await setDoc(ref, data, { merge: true });
           await loadData();
         };
+
+
+
 
         box.appendChild(btnA);
         box.appendChild(btnR);
@@ -209,10 +255,10 @@ async function requireAdmin(user) {
 
 // ---------- page detection ----------
 const isDashboardPage = !!document.getElementById("usersTableBody");     // admin-dashboard.html
-const isModulesPage   = !!document.getElementById("modulesTableBody");   // admin-module.html
-const isClassesPage   = !!document.getElementById("classesTableBody");   // admin-class.html
+const isModulesPage = !!document.getElementById("modulesTableBody");   // admin-module.html
+const isClassesPage = !!document.getElementById("classesTableBody");   // admin-class.html
 const isQuestionsPage = !!document.getElementById("saveQuestionAllBtn"); // admin-questions.html ✅
-const isEditorPage    = !!document.getElementById("questionText");       // admin.html
+const isEditorPage = !!document.getElementById("questionText");       // admin.html
 
 
 
@@ -474,7 +520,7 @@ async function initQuestionsPage() {
   const classInfo = document.getElementById("classInfo");
 
   const moduleId = getParam("moduleId");
-  const classId  = getParam("classId");
+  const classId = getParam("classId");
 
   if (!moduleId || !classId) {
     if (classInfo) classInfo.textContent = "❌ Falta moduleId / classId en la URL.";
@@ -491,12 +537,12 @@ async function initQuestionsPage() {
   }
 
   // Form fields (your HTML ids)
-  const saveBtn          = document.getElementById("saveQuestionAllBtn");
-  const questionIdEl     = document.getElementById("questionId");
-  const questionOrderEl  = document.getElementById("questionOrder");
-  const correctIndexEl   = document.getElementById("correctIndex");
+  const saveBtn = document.getElementById("saveQuestionAllBtn");
+  const questionIdEl = document.getElementById("questionId");
+  const questionOrderEl = document.getElementById("questionOrder");
+  const correctIndexEl = document.getElementById("correctIndex");
   const questionActiveEl = document.getElementById("questionActive");
-  const questionTextEl   = document.getElementById("questionText");
+  const questionTextEl = document.getElementById("questionText");
 
   const a0 = document.getElementById("a0");
   const a1 = document.getElementById("a1");
@@ -902,11 +948,11 @@ async function initEditorPage() {
 
   if (urlModuleId && urlClassId) {
     // try load class fields automatically (optional but helpful)
-    try { await loadClassBtn.click(); } catch (e) {}
+    try { await loadClassBtn.click(); } catch (e) { }
   }
 
   // initial list
-  try { await refreshListBtn.click(); } catch (e) {}
+  try { await refreshListBtn.click(); } catch (e) { }
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -917,10 +963,10 @@ onAuthStateChanged(auth, async (user) => {
   if (authStatus) authStatus.textContent = `Sesión: ${user.email}`;
 
   if (isDashboardPage) await initDashboardPage();
-  if (isModulesPage)   await initModulesPage();
-  if (isClassesPage)   await initClassesPage();
+  if (isModulesPage) await initModulesPage();
+  if (isClassesPage) await initClassesPage();
   if (isQuestionsPage) await initQuestionsPage();  // ✅ THIS MUST RUN
-  if (isEditorPage)    await initEditorPage();
+  if (isEditorPage) await initEditorPage();
 });
 
 

@@ -179,8 +179,6 @@
     const MODULE_COUNT = 6;
     const CLASSES_PER_MODULE = 4;
 
-    // IMPORTANT: materiales.html uses 0-based keys: paidModules[mIndex]
-    const moduleIndex = Number.isFinite(moduleToPay) ? (moduleToPay - 1) : 0;
 
     const payBox = document.getElementById("payBox");
     const moduleLabel = document.getElementById("moduleLabel");
@@ -276,7 +274,7 @@
       progress.passedTests ??= {};
       progress.videoWatched ??= {};
 
-      const alreadyPaid = !!progress.paidModules[moduleIndex];
+      const alreadyPaid = !!progress.paidModules[moduleToPay];
 
       // ✅ Only block if already paid
       if (alreadyPaid) {
@@ -295,7 +293,7 @@
       payBox.style.display = "grid";
 
       markPendingBtn.addEventListener("click", async () => {
-        progress.paymentPending[moduleIndex] = true; // 0-based
+        progress.paymentPending[moduleToPay] = true; // ✅ 1-based (module number)
         await setDoc(ref, progress, { merge: true });
 
         markPendingBtn.disabled = true;

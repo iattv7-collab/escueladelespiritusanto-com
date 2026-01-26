@@ -1,27 +1,59 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>La Escuela del Espíritu Santo</title>
+
   <style>
     body {
       margin: 0;
       font-family: system-ui, sans-serif;
-      background: linear-gradient(to bottom, #1e3a8a 0%, #3b82f6 40%, #93c5fd 100%);
       min-height: 100vh;
+      background: #020617;
+      overflow-x: hidden;
     }
+
+    /* 🎥 VIDEO BACKGROUND */
+    .bg-video-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      overflow: hidden;
+      background: #020617;
+    }
+
+    .bg-video-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      filter: brightness(1) contrast(1);
+    }
+
+    /* Dark overlay so text stays readable */
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: rgba(2, 6, 23, 0.35);
+      backdrop-filter: blur(0px);
+    }
+
     .page-shell {
-      background: rgba(2, 6, 23, 0.55);
       min-height: 100vh;
-      backdrop-filter: blur(6px);
       display: flex;
       flex-direction: column;
     }
+
     header {
       padding: 1rem 1.25rem .5rem;
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      background: rgba(4, 42, 211, 0.25);
+      backdrop-filter: blur(0px);
     }
+
     .nav {
       max-width: 1080px;
       margin: 0 auto;
@@ -30,23 +62,28 @@
       justify-content: space-between;
       gap: 1rem;
     }
+
     .brand {
       line-height: 1.3;
     }
+
     .brand strong {
       font-size: 1.1rem;
       color: #fff;
     }
+
     .brand small {
       display: block;
       color: #d1d5db;
       font-size: .78rem;
     }
+
     .brand a {
       color: #fbbf24;
       font-size: .75rem;
       text-decoration: none;
     }
+
     .btn {
       background: linear-gradient(120deg, #f97316, #fbbf24);
       color: #020617;
@@ -60,10 +97,12 @@
       transition: transform .2s ease, box-shadow .2s ease;
       white-space: nowrap;
     }
+
     .btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(249,115,22,0.4);
+      box-shadow: 0 6px 15px rgba(249, 115, 22, 0.4);
     }
+
     .btn-secondary {
       background: linear-gradient(120deg, #f97316, #fbbf24);
       color: #020617;
@@ -75,17 +114,20 @@
       text-decoration: none;
       display: inline-block;
       transition: transform .2s ease, box-shadow .2s ease;
-      box-shadow: 0 2px 8px rgba(249,115,22,0.4);
+      box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
     }
+
     .btn-secondary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(249,115,22,0.55);
+      box-shadow: 0 6px 15px rgba(249, 115, 22, 0.55);
     }
+
     .header-actions {
       display: flex;
       gap: .6rem;
       align-items: center;
     }
+
     .hero {
       max-width: 1080px;
       margin: 0 auto;
@@ -95,31 +137,47 @@
       text-align: center;
       color: #ffffff;
     }
+
     .school-name {
       font-size: clamp(2.4rem, 4vw, 3rem);
       font-weight: 700;
     }
+
     .title {
       font-size: clamp(1.35rem, 2.5vw, 1.7rem);
       font-weight: 500;
     }
+
     .muted {
-      color: rgba(226,232,240,0.9);
+      color: rgba(243, 244, 247, 0.9);
       max-width: 720px;
       margin: 0 auto;
     }
+
+    .hero-description {
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+
     .video-frame {
       position: relative;
       width: 100%;
       max-width: 720px;
       aspect-ratio: 16 / 9;
       background: #0f172a;
-      border: 1px solid rgba(255,255,255,.12);
+      border: 1px solid rgba(255, 255, 255, .12);
       border-radius: 1rem;
       overflow: hidden;
       margin: 1.2rem auto 0;
     }
-    iframe { width: 100%; height: 100%; border: none; }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
     .video-overlay {
       position: absolute;
       bottom: 1.2rem;
@@ -136,44 +194,65 @@
       color: #fff;
       transition: all .25s ease;
     }
+
     .video-overlay:hover {
       background: rgba(249, 115, 22, 0.95);
       border-color: #fbbf24;
       transform: scale(1.05);
     }
+
     .section {
       max-width: 1080px;
       margin: 0 auto;
       padding: 0 1.25rem 3rem;
       color: #fff;
     }
+
     .cards {
       display: grid;
       gap: 1rem;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       margin-top: 1.5rem;
     }
+
     .card {
-      background: rgba(15,23,42,.35);
-      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(15, 23, 42, .35);
+      border: 1px solid rgba(255, 255, 255, .08);
       border-radius: 1rem;
       padding: 1rem;
       text-align: center;
+      backdrop-filter: blur(8px);
     }
+
     footer {
       margin-top: auto;
       text-align: center;
       padding: 1.25rem;
-      color: rgba(226,232,240,.6);
+      color: rgba(226, 232, 240, .6);
       font-size: .75rem;
+      background: rgba(2, 6, 23, 0.25);
+      backdrop-filter: blur(8px);
     }
+
     footer .footer-btn {
       display: inline-block;
       margin-bottom: .6rem;
     }
   </style>
 </head>
+
 <body>
+
+  <!-- 🎥 Background Video -->
+  <div class="bg-video-wrap">
+    <video autoplay muted loop playsinline>
+      <source src="video/landing-bg.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <!-- Dark overlay to make text readable -->
+  <div class="bg-overlay"></div>
+
   <div class="page-shell">
     <header>
       <div class="nav">
@@ -193,23 +272,28 @@
       <section class="hero">
         <h1 class="school-name">La Escuela del Espíritu Santo</h1>
         <p class="title">Formación bíblica y práctica en el Espíritu Santo</p>
-        <p class="muted">
-          Entrena a los que sirven, activa a los que comienzan y alinea la enseñanza con el carácter de Cristo y la guía del Espíritu.
+        <p class="muted "hero-description>
+          Bienvenido a La Escuela del Espíritu Santo.<br>
+          Jesucristo es el centro de esta escuela: el Padre envió al Hijo para salvarnos, restaurarnos y reconciliarnos
+          con Dios.<br>
+          Creemos en la salvación por gracia, por medio de la fe, y en el poder de Dios para transformar vidas de
+          verdad.<br>
+          Aquí formamos discípulos que caminan como nueva creación, guiados por el Espíritu Santo a toda verdad.<br>
+          No buscamos religión: buscamos transformación real por la Palabra, obediencia, santidad y fruto del Reino.<br>
+          Honramos la Escritura completa — la Ley, los Profetas y el Evangelio — y creemos que Dios sigue afirmando Su
+          voluntad con poder.<br>
+          Si Dios te está llamando a madurez, discernimiento y comunión con Él, este lugar es para ti.
         </p>
 
         <a class="btn" href="./inscripcion.html">Soy nuevo, quiero inscribirme</a>
 
-        <p class="muted" style="font-size:.78rem;">¿Ya tienes cuenta? 
+        <p class="muted" style="font-size:.78rem;">¿Ya tienes cuenta?
           <a href="./login.html" style="color:#fbbf24;">Inicia sesión aquí</a>.
         </p>
 
         <div class="video-frame">
-          <iframe
-            id="promoVideo"
-            src="https://www.youtube.com/embed/COP84v92xSw?enablejsapi=1&rel=0&mute=1&autoplay=1"
-            title="Presentación de la escuela"
-            allow="autoplay; encrypted-media"
-            allowfullscreen>
+          <iframe id="promoVideo" src="https://www.youtube.com/embed/COP84v92xSw?enablejsapi=1&rel=0&mute=1&autoplay=1"
+            title="Presentación de la escuela" allow="autoplay; encrypted-media" allowfullscreen>
           </iframe>
 
           <div id="unmuteBtn" class="video-overlay">
@@ -309,4 +393,5 @@
   </script>
 
 </body>
+
 </html>

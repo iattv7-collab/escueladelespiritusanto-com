@@ -771,9 +771,14 @@
       const moduleUnlocked = isModuleUnlocked(p, mIndex);
       const moduleCompleted = isModuleFullyCompleted(p, mIndex);
 
+      const modTitle = (mod.title && String(mod.title).trim()) ? String(mod.title).trim() : "";
+
       moduleDetail.innerHTML = `
         <div class="module-header-main">
           <h2>Módulo ${mIndex}</h2>
+
+          ${modTitle ? `<div style="font-size:1.15rem; font-weight:700; color:#fff; margin-top:.15rem;">${modTitle}</div>` : ""}
+
           <div class="module-subnote">
             ${!moduleUnlocked ? "Este módulo se abrirá cuando completes el anterior."
               : moduleCompleted ? "Módulo completado."
@@ -781,6 +786,7 @@
           </div>
         </div>
       `;
+
 
       const modulePaid = !!p.paidModules[mIndex];
 

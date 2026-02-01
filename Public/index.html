@@ -159,7 +159,6 @@
       line-height: 1.65;
     }
 
-
     .video-frame {
       position: relative;
       width: 100%;
@@ -245,12 +244,11 @@
 
   <!-- 🎥 Background Video -->
   <div class="bg-video-wrap">
-    <video autoplay muted loop playsinline>
+    <video id="landingBgVideo" autoplay muted loop playsinline>
       <source src="video/landing-bg.mp4" type="video/mp4" />
     </video>
   </div>
 
-  <!-- Dark overlay to make text readable -->
   <div class="bg-overlay"></div>
 
   <div class="page-shell">
@@ -272,16 +270,14 @@
       <section class="hero">
         <h1 class="school-name">La Escuela del Espíritu Santo</h1>
         <p class="title">Formación bíblica y práctica en el Espíritu Santo</p>
-        <p class="muted "hero-description>
+
+        <p class="muted hero-description">
           Bienvenido a La Escuela del Espíritu Santo.<br>
-          Jesucristo es el centro de esta escuela: el Padre envió al Hijo para salvarnos, restaurarnos y reconciliarnos
-          con Dios.<br>
-          Creemos en la salvación por gracia, por medio de la fe, y en el poder de Dios para transformar vidas de
-          verdad.<br>
+          Jesucristo es el centro de esta escuela: el Padre envió al Hijo para salvarnos, restaurarnos y reconciliarnos con Dios.<br>
+          Creemos en la salvación por gracia, por medio de la fe, y en el poder de Dios para transformar vidas de verdad.<br>
           Aquí formamos discípulos que caminan como nueva creación, guiados por el Espíritu Santo a toda verdad.<br>
           No buscamos religión: buscamos transformación real por la Palabra, obediencia, santidad y fruto del Reino.<br>
-          Honramos la Escritura completa — la Ley, los Profetas y el Evangelio — y creemos que Dios sigue afirmando Su
-          voluntad con poder.<br>
+          Honramos la Escritura completa — la Ley, los Profetas y el Evangelio — y creemos que Dios sigue afirmando Su voluntad con poder.<br>
           Si Dios te está llamando a madurez, discernimiento y comunión con Él, este lugar es para ti.
         </p>
 
@@ -292,8 +288,12 @@
         </p>
 
         <div class="video-frame">
-          <iframe id="promoVideo" src="https://www.youtube.com/embed/COP84v92xSw?enablejsapi=1&rel=0&mute=1&autoplay=1"
-            title="Presentación de la escuela" allow="autoplay; encrypted-media" allowfullscreen>
+          <iframe
+            id="promoVideo"
+            src="https://www.youtube.com/embed/COP84v92xSw?enablejsapi=1&rel=0&mute=1&autoplay=1"
+            title="Presentación de la escuela"
+            allow="autoplay; encrypted-media"
+            allowfullscreen>
           </iframe>
 
           <div id="unmuteBtn" class="video-overlay">
@@ -336,11 +336,7 @@
         if (!iframe) return;
 
         iframe.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'playVideo',
-            args: []
-          }),
+          JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
           '*'
         );
       }, 1500);
@@ -352,20 +348,12 @@
       if (!iframe) return;
 
       iframe.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: 'unMute',
-          args: []
-        }),
+        JSON.stringify({ event: 'command', func: 'unMute', args: [] }),
         '*'
       );
 
       iframe.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: 'playVideo',
-          args: []
-        }),
+        JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
         '*'
       );
 
@@ -374,6 +362,7 @@
   </script>
 
   <script src="./content.js"></script>
+
   <script>
     const c = window.ESCUELA_CONTENT || {};
 
@@ -392,6 +381,44 @@
     }
   </script>
 
-</body>
+  <!-- Pause / resume BOTH videos when tab inactive -->
+  <script>
+    const bg = document.getElementById("landingBgVideo");
+    const promo = document.getElementById("promoVideo");
 
+    function ytCommand(func) {
+      if (!promo || !promo.contentWindow) return;
+      promo.contentWindow.postMessage(JSON.stringify({
+        event: "command",
+        func,
+        args: []
+      }), "*");
+    }
+
+    function pauseAll() {
+      try { if (bg) bg.pause(); } catch (e) {}
+      ytCommand("pauseVideo");
+    }
+
+    function resumeAll() {
+      try {
+        if (!document.hidden && bg && bg.paused) {
+          bg.play().catch(() => {});
+        }
+      } catch (e) {}
+
+      if (!document.hidden) ytCommand("playVideo");
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? pauseAll() : resumeAll();
+    });
+
+    window.addEventListener("blur", pauseAll);
+    window.addEventListener("focus", resumeAll);
+    window.addEventListener("pagehide", pauseAll);
+    window.addEventListener("pageshow", resumeAll);
+  </script>
+
+</body>
 </html>

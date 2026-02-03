@@ -45,10 +45,20 @@ function resolveId(idEl, orderEl) {
 }
 function flash(el, text, ok = true) {
   if (!el) return;
+
   el.textContent = text;
   el.style.color = ok ? "#a7f3d0" : "#fecaca";
-  setTimeout(() => (el.textContent = ""), 4000);
+
+  // ✅ Success messages (green) stay forever
+  if (ok) return;
+
+  // ❌ Error messages (red) still disappear after 6 seconds
+  setTimeout(() => {
+    // only clear if the message hasn't changed since we set it
+    if (el.textContent === text) el.textContent = "";
+  }, 6000);
 }
+
 function getParam(name) {
   return new URLSearchParams(window.location.search).get(name) || "";
 }
@@ -78,7 +88,6 @@ async function initDashboardPage() {
   function firstPendingModule(obj) {
     if (!obj || typeof obj !== "object") return null;
 
-    // Only keys explicitly set to true
     const pending = Object.keys(obj)
       .filter(k => obj[k] === true)
       .map(k => parseInt(k, 10))
@@ -87,7 +96,6 @@ async function initDashboardPage() {
 
     return pending.length ? String(pending[0]) : null;
   }
-
 
   async function loadData() {
     usersTableBody.innerHTML = `<tr><td colspan="6">Cargando…</td></tr>`;
@@ -144,7 +152,6 @@ async function initDashboardPage() {
         btnA.className = "btn-sm btn-approve";
         btnA.textContent = "Aprobar";
 
-
         btnA.onclick = async () => {
           const ref = doc(db, "userProgress", uid);
           const snap = await getDoc(ref);
@@ -155,10 +162,7 @@ async function initDashboardPage() {
           data.passedTests ??= {};
           data.videoWatched ??= {};
 
-          // ✅ pick the real pending module (true values only)
           let pend = firstPendingModule(data.paymentPending);
-
-          // ✅ one-time repair: if old system wrote "0" pending, treat it as module 1
           if (!pend && data.paymentPending["0"] === true) pend = "1";
 
           if (!pend) {
@@ -167,10 +171,7 @@ async function initDashboardPage() {
             return;
           }
 
-          // ✅ mark paid using 1-based module number
           data.paidModules[String(pend)] = true;
-
-          // ✅ clear pending (and clean old key too)
           delete data.paymentPending[String(pend)];
           delete data.paymentPending["0"];
 
@@ -178,13 +179,9 @@ async function initDashboardPage() {
           await loadData();
         };
 
-
-
-
         const btnR = document.createElement("button");
         btnR.className = "btn-sm btn-reject";
         btnR.textContent = "Rechazar";
-
 
         btnR.onclick = async () => {
           const ref = doc(db, "userProgress", uid);
@@ -203,9 +200,6 @@ async function initDashboardPage() {
           await loadData();
         };
 
-
-
-
         box.appendChild(btnA);
         box.appendChild(btnR);
         cell.appendChild(box);
@@ -217,7 +211,7 @@ async function initDashboardPage() {
   }
 
   searchInput?.addEventListener("input", () => {
-    const s = safeLower(searchInput.value);
+    const s = String(searchInput.value || "").toLowerCase();
     renderedRows.forEach(row => {
       const email = row.dataset.email || "";
       const nombre = row.dataset.nombre || "";
@@ -230,7 +224,6 @@ async function initDashboardPage() {
     window.location.href = "./admin-login.html";
   });
 
-  // show session + load
   if (authStatus && auth?.currentUser) authStatus.textContent = `Sesión: ${auth.currentUser.email}`;
   await loadData();
 }
@@ -253,13 +246,12 @@ async function requireAdmin(user) {
   return true;
 }
 
-// ---------- page detection ----------
-const isDashboardPage = !!document.getElementById("usersTableBody");     // admin-dashboard.html
-const isModulesPage = !!document.getElementById("modulesTableBody");   // admin-module.html
-const isClassesPage = !!document.getElementById("classesTableBody");   // admin-class.html
-const isQuestionsPage = !!document.getElementById("saveQuestionAllBtn"); // admin-questions.html ✅
-const isEditorPage = !!document.getElementById("questionText");       // admin.html
-
+// ---------- page detection (STABLE) ----------
+const isDashboardPage = !!document.getElementById("usersTableBody");      // admin-dashboard.html
+const isModulesPage   = !!document.getElementById("modulesTableBody");    // admin-module.html
+const isClassesPage   = !!document.getElementById("classesTableBody");    // admin-class.html
+const isQuestionsPage = !!document.getElementById("questionsTableBody");  // admin-questions.html
+const isEditorPage    = !!document.getElementById("saveQuestionBtn");     // admin.html
 
 
 
@@ -267,6 +259,7 @@ const isEditorPage = !!document.getElementById("questionText");       // admin.h
 const authStatus = $("authStatus");
 const logoutBtn = $("logoutBtn");
 if (logoutBtn) logoutBtn.addEventListener("click", doLogout);
+
 
 // =====================================================================
 //  PAGE: admin-module.html  (list + add/edit module)
@@ -345,7 +338,7 @@ async function initModulesPage() {
     });
   }
 
-  saveModuleBtn.addEventListener("click", async () => {
+  saveModuleBtn?.addEventListener("click", async () => {
     const moduleId = resolveId(moduleIdEl, moduleOrderEl);
     if (!moduleId) return flash(statusMsg, "Falta ID u Orden del módulo.", false);
 
@@ -366,13 +359,10 @@ async function initModulesPage() {
   await refreshModulesList();
 }
 
+
 // =====================================================================
 //  PAGE: admin-class.html  (list + add/edit class for a module)
 // =====================================================================
-
-
-
-
 async function initClassesPage() {
   const statusMsg = $("statusMsg");
 
@@ -400,7 +390,6 @@ async function initClassesPage() {
     window.location.href = "./admin-module.html";
   });
 
-  // show module info
   const mSnap = await getDoc(doc(db, "modules", moduleId));
   if (!mSnap.exists()) {
     alert("Ese módulo no existe.");
@@ -464,13 +453,13 @@ async function initClassesPage() {
     classesBody.querySelectorAll("[data-edit-questions]").forEach(btn => {
       btn.addEventListener("click", () => {
         const cId = btn.getAttribute("data-edit-questions");
-        window.location.href = `./admin-questions.html?moduleId=${encodeURIComponent(moduleId)}&classId=${encodeURIComponent(cId)}`;
-
+        window.location.href =
+          `./admin-questions.html?moduleId=${encodeURIComponent(moduleId)}&classId=${encodeURIComponent(cId)}`;
       });
     });
   }
 
-  saveClassBtn.addEventListener("click", async () => {
+  saveClassBtn?.addEventListener("click", async () => {
     const classId = resolveId(classIdEl, classOrderEl);
     if (!classId) return flash(statusMsg, "Falta ID u Orden de la clase.", false);
 
@@ -489,7 +478,7 @@ async function initClassesPage() {
     await refreshClassesList();
   });
 
-  loadClassBtn.addEventListener("click", async () => {
+  loadClassBtn?.addEventListener("click", async () => {
     const classId = resolveId(classIdEl, classOrderEl);
     if (!classId) return flash(statusMsg, "Pon ID u Orden de la clase para cargar.", false);
 
@@ -510,6 +499,7 @@ async function initClassesPage() {
   await refreshClassesList();
 }
 
+
 // =====================================================================
 //  PAGE: admin-questions.html  (questions for a specific class)
 // =====================================================================
@@ -528,7 +518,6 @@ async function initQuestionsPage() {
     return;
   }
 
-  // Buttons (your HTML ids)
   const backBtn = document.getElementById("backClassesBtn");
   if (backBtn) {
     backBtn.addEventListener("click", () => {
@@ -536,7 +525,6 @@ async function initQuestionsPage() {
     });
   }
 
-  // Form fields (your HTML ids)
   const saveBtn = document.getElementById("saveQuestionAllBtn");
   const questionIdEl = document.getElementById("questionId");
   const questionOrderEl = document.getElementById("questionOrder");
@@ -551,7 +539,6 @@ async function initQuestionsPage() {
 
   const tableBody = document.getElementById("questionsTableBody");
 
-  // Show which class we’re editing
   try {
     const cSnap = await getDoc(doc(db, "modules", moduleId, "classes", classId));
     const c = cSnap.exists() ? (cSnap.data() || {}) : {};
@@ -574,7 +561,6 @@ async function initQuestionsPage() {
     });
   }
 
-  // Sync correctIndex input when radio changes
   document.querySelectorAll('input[name="correctPick"]').forEach(r => {
     r.addEventListener("change", () => {
       const idx = pickedCorrectIndex();
@@ -602,43 +588,93 @@ async function initQuestionsPage() {
         <tr>
           <td>${q.order ?? "-"}</td>
           <td class="small">${(q.text ?? "").toString().slice(0, 90)}</td>
-          <td><button type="button" class="btn btn-ghost" data-edit-q="${d.id}">Editar</button></td>
+          <td>
+            <button type="button" class="btn btn-ghost" data-edit-q="${d.id}">Editar</button>
+            <button type="button" class="btn btn-danger" data-del-q="${d.id}">Eliminar</button>
+          </td>
         </tr>
       `);
     });
 
     tableBody.innerHTML = rows.join("");
 
+    // ✅ EDIT (THIS IS WHAT YOU WERE MISSING)
     tableBody.querySelectorAll("[data-edit-q]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const qId = btn.getAttribute("data-edit-q");
+        if (!qId) return;
 
-        const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
-        const qSnap = await getDoc(qRef);
-        if (!qSnap.exists()) return;
+        try {
+          const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
+          const qSnap = await getDoc(qRef);
+          if (!qSnap.exists()) return;
 
-        const q = qSnap.data() || {};
-        questionIdEl.value = qId;
-        questionOrderEl.value = q.order ?? "";
-        questionActiveEl.value = String(!!q.active);
-        questionTextEl.value = q.text ?? "";
+          const q = qSnap.data() || {};
+          questionIdEl.value = qId;
+          questionOrderEl.value = q.order ?? "";
+          questionActiveEl.value = String(!!q.active);
+          questionTextEl.value = q.text ?? "";
 
-        const idx = (typeof q.correctIndex === "number") ? q.correctIndex : 0;
-        correctIndexEl.value = String(idx);
-        setRadio(idx);
+          const idx = (typeof q.correctIndex === "number") ? q.correctIndex : 0;
+          correctIndexEl.value = String(idx);
+          setRadio(idx);
 
-        const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers");
-        const ansSnap = await getDocs(ansCol);
+          const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers");
+          const ansSnap = await getDocs(ansCol);
 
-        const map = {};
-        ansSnap.forEach(x => (map[x.id] = x.data()));
+          const map = {};
+          ansSnap.forEach(x => (map[x.id] = x.data() || {}));
 
-        a0.value = map["0"]?.text ?? "";
-        a1.value = map["1"]?.text ?? "";
-        a2.value = map["2"]?.text ?? "";
-        a3.value = map["3"]?.text ?? "";
+          a0.value = map["0"]?.text ?? "";
+          a1.value = map["1"]?.text ?? "";
+          a2.value = map["2"]?.text ?? "";
+          a3.value = map["3"]?.text ?? "";
 
-        flash(statusMsg, "✅ Pregunta cargada.");
+          flash(statusMsg, "✅ Pregunta cargada.");
+        } catch (err) {
+          console.error("❌ Error cargando pregunta:", err);
+          flash(statusMsg, "❌ No se pudo cargar. Mira Console (F12).", false);
+        }
+      });
+    });
+
+    // 🗑️ DELETE (confirm + hard delete)
+    tableBody.querySelectorAll("[data-del-q]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const qId = btn.getAttribute("data-del-q");
+        if (!qId) return;
+
+        const ok = confirm("¿Eliminar esta pregunta? Esto también borra sus respuestas y NO se puede deshacer.");
+        if (!ok) return;
+
+        try {
+          const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
+          const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers");
+          const ansSnap = await getDocs(ansCol);
+
+          const batch = writeBatch(db);
+          ansSnap.forEach(a => batch.delete(a.ref));
+          batch.delete(qRef);
+
+          await batch.commit();
+
+          // If you were editing this same question, clear the form
+          if ((questionIdEl?.value || "") === qId) {
+            questionIdEl.value = "";
+            questionOrderEl.value = "";
+            questionTextEl.value = "";
+            correctIndexEl.value = "0";
+            questionActiveEl.value = "true";
+            a0.value = ""; a1.value = ""; a2.value = ""; a3.value = "";
+            setRadio(0);
+          }
+
+          flash(statusMsg, "🗑️ Pregunta eliminada.");
+          await renderList();
+        } catch (err) {
+          console.error("❌ Error eliminando pregunta:", err);
+          flash(statusMsg, "❌ No se pudo eliminar. Mira Console (F12).", false);
+        }
       });
     });
   }
@@ -646,7 +682,20 @@ async function initQuestionsPage() {
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       try {
-        const qId = resolveId(questionIdEl, questionOrderEl) || String(Date.now());
+        // ✅ hard validation – do not save if anything important is missing
+      if (
+        !val(questionIdEl) ||
+        !val(questionOrderEl) ||
+        !val(questionTextEl) ||
+        !val(a0) || !val(a1) || !val(a2) || !val(a3) ||
+        pickedCorrectIndex() === null
+      ) {
+        alert("Completa TODOS los campos (ID, orden, texto, respuestas y correcta).");
+        return;
+      }
+        const qId = resolveId(questionIdEl, questionOrderEl);
+        if (!qId) return alert("Pon un ID o un Orden.");
+
         const order = num(questionOrderEl, 1);
 
         let idx = pickedCorrectIndex();
@@ -694,11 +743,9 @@ async function initQuestionsPage() {
 
 
 // =====================================================================
-//  PAGE: admin.html  (your existing editor: module/class/question/answers)
-//  NOTE: we only add: read URL params moduleId/classId and prefill.
+//  PAGE: admin.html  (editor)
 // =====================================================================
 async function initEditorPage() {
-  // your existing IDs (from admin.html)
   const statusMsg = $("statusMsg");
 
   const moduleIdEl = $("moduleId");
@@ -734,7 +781,6 @@ async function initEditorPage() {
   const refreshListBtn = $("refreshListBtn");
   const quickList = $("quickList");
 
-  // --- Radio -> correctIndex ---
   function syncCorrectIndexFromRadio() {
     const picked = document.querySelector('input[name="correctPick"]:checked');
     if (!picked) return null;
@@ -822,10 +868,7 @@ async function initEditorPage() {
     if (!questionId) return flash(statusMsg, "Falta ID u Orden de la pregunta.", false);
 
     const pickedIdx = syncCorrectIndexFromRadio();
-    if (pickedIdx === null) {
-      alert("Debes seleccionar la respuesta correcta.");
-      return;
-    }
+    if (pickedIdx === null) return alert("Debes seleccionar la respuesta correcta.");
 
     const qText = val(questionTextEl);
     if (!qText) return flash(statusMsg, "Falta texto de la pregunta.", false);
@@ -940,21 +983,22 @@ async function initEditorPage() {
     quickList.innerHTML = out.join("") || "<div class='small'>(sin módulos)</div>";
   }
 
-  // ✅ NEW: if we came from admin-class.html, auto-fill moduleId/classId from URL
   const urlModuleId = getParam("moduleId");
   const urlClassId = getParam("classId");
   if (urlModuleId) moduleIdEl.value = urlModuleId;
   if (urlClassId) classIdEl.value = urlClassId;
 
   if (urlModuleId && urlClassId) {
-    // try load class fields automatically (optional but helpful)
     try { await loadClassBtn.click(); } catch (e) { }
   }
 
-  // initial list
   try { await refreshListBtn.click(); } catch (e) { }
 }
 
+
+// =====================================================================
+//  BOOT
+// =====================================================================
 onAuthStateChanged(auth, async (user) => {
   const ok = await requireAdmin(user);
   if (!ok) return;
@@ -965,8 +1009,6 @@ onAuthStateChanged(auth, async (user) => {
   if (isDashboardPage) await initDashboardPage();
   if (isModulesPage) await initModulesPage();
   if (isClassesPage) await initClassesPage();
-  if (isQuestionsPage) await initQuestionsPage();  // ✅ THIS MUST RUN
+  if (isQuestionsPage) await initQuestionsPage();
   if (isEditorPage) await initEditorPage();
 });
-
-

@@ -35,9 +35,8 @@
        PAGE SHELL
     ========================= */
     .page-shell {
-      background: rgba(2, 6, 23, 0.65);
+      background: rgba(15, 23, 42, 0.28);
       min-height: 100vh;
-      backdrop-filter: blur(6px);
       display: flex;
       flex-direction: column;
     }
@@ -250,6 +249,141 @@
       display: grid;
       gap: .75rem;
     }
+
+    .classroom-card {
+      background: #fff;
+      color: #0f172a;
+      border-radius: 1.15rem;
+      padding: 1.15rem 1.2rem 1.25rem;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .18);
+    }
+    .continue-label {
+      color: #d97706;
+      font-weight: 800;
+      font-size: .78rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: .35rem;
+    }
+    .classroom-card h2 {
+      margin: 0;
+      font-size: clamp(1.25rem, 3vw, 1.85rem);
+      color: #1e3a8a;
+      line-height: 1.2;
+    }
+    .class-meta {
+      margin-top: .35rem;
+      color: #64748b;
+      font-size: .92rem;
+    }
+    .progress-track {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      margin: .85rem 0 1rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #f97316);
+      border-radius: 99px;
+    }
+    .board {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: .9rem;
+      overflow: hidden;
+      background: #0f172a;
+      cursor: pointer;
+    }
+    .board img, .board .board-fallback {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .board-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(160deg, #1e3a8a, #3b82f6);
+      font-weight: 700;
+    }
+    .play-fab {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, .28);
+    }
+    .play-fab span {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .82);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+    .cta {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 999px;
+      padding: .85rem 1rem;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      background: linear-gradient(120deg, #f97316, #fbbf24);
+      color: #111827;
+      font-family: inherit;
+    }
+    .cta:disabled {
+      background: #94a3b8;
+      color: #fff;
+      cursor: not-allowed;
+    }
+    .stepper {
+      display: flex;
+      justify-content: space-between;
+      gap: .35rem;
+      margin-top: 1.1rem;
+      flex-wrap: wrap;
+    }
+    .step {
+      flex: 1;
+      min-width: 2rem;
+      text-align: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #94a3b8;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .step span {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #cbd5e1;
+      margin-bottom: .2rem;
+      font-size: .78rem;
+    }
+    .step.done { color: #16a34a; }
+    .step.done span { background: #16a34a; border-color: #16a34a; color: #fff; }
+    .step.current { color: #d97706; }
+    .step.current span { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+    .step.locked { opacity: .55; cursor: pointer; }
+
 
     .module-header-main {
       margin-bottom: .25rem;
@@ -558,11 +692,7 @@
 
         <section class="module-content">
           <div>
-            <h1>Materiales de estudio</h1>
-            <p class="muted">
-              Ve la clase, luego presenta la prueba. Al aprobar todas las clases, se abre el siguiente módulo.
-            </p>
-            <div id="loadingMsg" class="muted">Cargando tus módulos…</div>
+            <div id="loadingMsg" class="muted">Cargando tu clase…</div>
           </div>
 
           <div id="moduleDetail"></div>
@@ -686,6 +816,7 @@
     // ]
     let modulesData = [];
     let selectedModuleIndex = 1;   // 1..N
+    let selectedClassIndex = 1;    // 1..N within module
     let currentVideoKey = null;    // "m-c" like "1-1"
 
     // Optional fallback prices (only used if module.price missing)
@@ -829,6 +960,42 @@
     }
     window.goToPayment = goToPayment;
 
+
+    function youtubeId(url) {
+      const raw = String(url || "").trim();
+      try {
+        const u = new URL(raw);
+        if (u.hostname.includes("youtu.be")) return u.pathname.replace("/", "").trim();
+        const v = u.searchParams.get("v");
+        if (v) return v;
+        const parts = u.pathname.split("/").filter(Boolean);
+        const i = parts.indexOf("embed");
+        if (i !== -1 && parts[i + 1]) return parts[i + 1];
+        const s = parts.indexOf("shorts");
+        if (s !== -1 && parts[s + 1]) return parts[s + 1];
+      } catch (e) {}
+      return "";
+    }
+
+    function getResumeClassIndex(progress, mIndex) {
+      const mod = getModuleByIndex(mIndex);
+      if (!mod || !mod.classes.length) return 1;
+      for (const cls of mod.classes) {
+        const key = classKey(mIndex, cls._index);
+        if (!progress.passedTests[key]) return cls._index;
+      }
+      return mod.classes[mod.classes.length - 1]._index;
+    }
+
+    function nextUnpaidModule(progress) {
+      for (const mod of modulesData) {
+        const i = mod._index;
+        if (isModuleFullyCompleted(progress, i - 1 || 1) === false && i > 1) continue;
+        if (!progress.paidModules[i] && canPayModule(progress, i)) return i;
+      }
+      return null;
+    }
+
     function renderSidebar() {
       modulesSidebar.innerHTML = "";
       const p = currentProgress;
@@ -845,9 +1012,10 @@
         if (!unlocked) btn.classList.add("locked");
         if (mIndex === selectedModuleIndex) btn.classList.add("active");
 
+        const lockMark = !unlocked ? "🔒" : completed ? "✓" : "";
         btn.innerHTML = `
           <span class="module-nav-label">Módulo ${mIndex}</span>
-          <span class="module-nav-status">${completed ? "Completado" : unlocked ? "Disponible" : ""}</span>
+          <span class="module-nav-status">${lockMark || (completed ? "Completado" : "")}</span>
         `;
 
         btn.addEventListener("click", () => {
@@ -856,6 +1024,7 @@
             return;
           }
           selectedModuleIndex = mIndex;
+          selectedClassIndex = getResumeClassIndex(p, mIndex);
           renderAll();
         });
 
@@ -869,112 +1038,145 @@
 
       if (!mod) {
         moduleDetail.innerHTML = `
-          <div class="module-header-main">
+          <div class="classroom-card">
             <h2>No hay módulos disponibles</h2>
-            <div class="module-subnote">Aún no se han creado módulos en el sistema.</div>
+            <div class="class-meta">Aún no se han creado módulos en el sistema.</div>
           </div>
         `;
         return;
       }
 
-      const moduleUnlocked = isModuleUnlocked(p, mIndex);
-      const moduleCompleted = isModuleFullyCompleted(p, mIndex);
+      const classes = mod.classes || [];
+      if (!classes.length) {
+        moduleDetail.innerHTML = `
+          <div class="classroom-card">
+            <div class="continue-label">Módulo ${mIndex}</div>
+            <h2>${mod.title || ("Módulo " + mIndex)}</h2>
+            <div class="class-meta">Este módulo todavía no tiene clases.</div>
+          </div>
+        `;
+        return;
+      }
 
-      const modTitle = (mod.title && String(mod.title).trim()) ? String(mod.title).trim() : "";
+      if (!classes.some(c => c._index === selectedClassIndex)) {
+        selectedClassIndex = getResumeClassIndex(p, mIndex);
+      }
+
+      const cls = classes.find(c => c._index === selectedClassIndex) || classes[0];
+      const cIndex = cls._index;
+      const key = classKey(mIndex, cIndex);
+      const total = classes.length;
+      const passed = !!p.passedTests[key];
+      const watched = !!p.videoWatched[key];
+      const moduleUnlocked = isModuleUnlocked(p, mIndex);
+      const modulePaid = !!p.paidModules[mIndex];
+      const unlockedClass = modulePaid && isClassUnlocked(p, mIndex, cIndex);
+      const title = (cls.title && String(cls.title).trim()) ? cls.title : `Clase ${cIndex}`;
+      const passedCount = classes.filter(c => p.passedTests[classKey(mIndex, c._index)]).length;
+      const pct = Math.round((passedCount / total) * 100);
+      const yt = youtubeId(cls.videoUrl);
+      const thumb = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : "";
+
+      let ctaLabel = "Ver clase";
+      let ctaAction = "video";
+      let boardAction = "video";
+      let lockMsg = "";
+
+      if (!moduleUnlocked) {
+        ctaLabel = "Aún no disponible";
+        ctaAction = "locked";
+        boardAction = "locked";
+        lockMsg = lockedModuleMessage(p, mIndex);
+      } else if (!modulePaid) {
+        ctaLabel = "Continuar al pago";
+        ctaAction = "pay";
+        boardAction = "pay";
+      } else if (!unlockedClass) {
+        ctaLabel = "Aún no disponible";
+        ctaAction = "locked";
+        boardAction = "locked";
+        lockMsg = "Primero aprueba la prueba de la clase anterior.";
+      } else if (!watched && !passed) {
+        ctaLabel = "Ver clase";
+        ctaAction = "video";
+        boardAction = "video";
+      } else if (watched && !passed) {
+        ctaLabel = "Tomar la prueba";
+        ctaAction = "test";
+        boardAction = "video";
+      } else if (passed) {
+        const nextCls = classes.find(c => c._index === cIndex + 1);
+        if (nextCls) {
+          ctaLabel = "Siguiente clase";
+          ctaAction = "next-class";
+          boardAction = "video";
+        } else {
+          const nxt = mIndex + 1;
+          const nextMod = getModuleByIndex(nxt);
+          if (nextMod && canPayModule(p, nxt)) {
+            ctaLabel = "Pagar siguiente módulo";
+            ctaAction = "pay-next";
+            boardAction = "video";
+          } else {
+            ctaLabel = "Ver otra vez";
+            ctaAction = "video";
+            boardAction = "video";
+          }
+        }
+      }
+
+      const steps = classes.map(c => {
+        const k = classKey(mIndex, c._index);
+        const done = !!p.passedTests[k];
+        const cur = c._index === cIndex;
+        const clsName = done ? "done" : cur ? "current" : "step";
+        const extra = (!modulePaid || !isClassUnlocked(p, mIndex, c._index)) && !done ? " locked" : "";
+        return `<button type="button" class="step ${done ? "done" : ""} ${cur ? "current" : ""} ${extra}" data-step="${c._index}"><span>${done ? "✓" : c._index}</span><div>${c._index}</div></button>`;
+      }).join("");
+
+      const boardInner = thumb
+        ? `<img src="${thumb}" alt="">`
+        : `<div class="board-fallback">Clase ${cIndex}</div>`;
 
       moduleDetail.innerHTML = `
-        <div class="module-header-main">
-          <h2>Módulo ${mIndex}</h2>
-
-          ${modTitle ? `<div style="font-size:1.15rem; font-weight:700; color:#fff; margin-top:.15rem;">${modTitle}</div>` : ""}
-
-          <div class="module-subnote">
-            ${moduleCompleted ? "Módulo completado."
-              : moduleUnlocked ? "Avanza clase por clase."
-                : "Este módulo se verá con claridad cuando termines el anterior."}
-          </div>
+        <div class="classroom-card">
+          <div class="continue-label">Continúa aquí</div>
+          <h2>Clase ${cIndex} — ${title}</h2>
+          <div class="class-meta">Módulo ${mIndex}${mod.title ? " · " + mod.title : ""} · Clase ${cIndex} de ${total}</div>
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="board" id="classBoard">${boardInner}<div class="play-fab"><span>▶</span></div></div>
+          <button type="button" class="cta" id="classCta">${ctaLabel}</button>
+          <div class="stepper">${steps}</div>
         </div>
       `;
 
+      const runAction = (action) => {
+        if (action === "locked") return showNotice(lockMsg || lockedModuleMessage(p, mIndex));
+        if (action === "pay") return goToPayment(mIndex);
+        if (action === "pay-next") return goToPayment(mIndex + 1);
+        if (action === "video") return openVideoModal(key);
+        if (action === "test") return openTestPage(key);
+        if (action === "next-class") {
+          selectedClassIndex = cIndex + 1;
+          renderAll();
+        }
+      };
 
-      const modulePaid = !!p.paidModules[mIndex];
-
-      const classList = document.createElement("div");
-      classList.className = "class-list";
-
-      for (const cls of mod.classes) {
-        const cIndex = cls._index;
-        const key = classKey(mIndex, cIndex);
-
-        const passed = !!p.passedTests[key];
-        const watched = !!p.videoWatched[key];
-        const unlockedClass = modulePaid && isClassUnlocked(p, mIndex, cIndex);
-
-        const item = document.createElement("div");
-        item.className = "class-item";
-        if (passed) item.classList.add("completed");
-
-        const title = (cls.title && String(cls.title).trim()) ? cls.title : `Clase ${cIndex}`;
-
-        let controls = "";
-        let lockReason = "";
-
-        if (!moduleUnlocked) {
-          item.classList.add("locked");
-          lockReason = lockedModuleMessage(p, mIndex);
-          controls = "";
-        } else if (!modulePaid) {
-          controls = `<button class="small-btn" type="button" data-go-pay="1">Ver clase</button>`;
-        } else if (unlockedClass) {
-          const watchBtnLabel = passed ? "Ver otra vez" : "Ver clase";
-
-          let testBtn = "";
-          if (passed) {
-            testBtn = `<button class="small-btn test-passed" onclick="openTestPage('${key}')">Prueba aprobada</button>`;
-          } else if (watched) {
-            testBtn = `<button class="small-btn test-ready" onclick="openTestPage('${key}')">Tomar prueba</button>`;
-          } else {
-            testBtn = `<button class="small-btn" type="button" data-need-watch="1">Tomar prueba</button>`;
+      document.getElementById("classBoard")?.addEventListener("click", () => runAction(boardAction));
+      document.getElementById("classCta")?.addEventListener("click", () => runAction(ctaAction));
+      moduleDetail.querySelectorAll("[data-step]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const n = Number(btn.getAttribute("data-step"));
+          const k = classKey(mIndex, n);
+          if (!moduleUnlocked) return showNotice(lockedModuleMessage(p, mIndex));
+          if (!modulePaid) return goToPayment(mIndex);
+          if (!isClassUnlocked(p, mIndex, n) && !p.passedTests[k]) {
+            return showNotice("Primero aprueba la prueba de la clase anterior.");
           }
-
-          controls = `
-            <button class="small-btn" onclick="openVideoModal('${key}')">${watchBtnLabel}</button>
-            ${testBtn}
-          `;
-        } else {
-          item.classList.add("locked");
-          lockReason = "Primero aprueba la prueba de la clase anterior.";
-          controls = "";
-        }
-
-        item.innerHTML = `
-          <div class="class-title">${title}</div>
-          <div class="class-actions">${controls}</div>
-        `;
-
-        if (lockReason) {
-          item.addEventListener("click", () => {
-            showNotice(lockReason);
-          });
-        } else {
-          item.querySelectorAll("[data-go-pay]").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              e.preventDefault();
-              goToPayment(mIndex);
-            });
-          });
-          item.querySelectorAll("[data-need-watch]").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              e.preventDefault();
-              showNotice("Primero mira la clase. Después podrás tomar la prueba.");
-            });
-          });
-        }
-
-        classList.appendChild(item);
-      }
-
-      moduleDetail.appendChild(classList);
+          selectedClassIndex = n;
+          renderAll();
+        });
+      });
     }
 
     function renderAll() {
@@ -993,6 +1195,9 @@
 
       if (!isModuleUnlocked(currentProgress, selectedModuleIndex)) {
         selectedModuleIndex = getActiveModuleIndex(currentProgress);
+      }
+      if (!selectedClassIndex) {
+        selectedClassIndex = getResumeClassIndex(currentProgress, selectedModuleIndex);
       }
 
       renderSidebar();
@@ -1063,7 +1268,7 @@
         currentVideoKey = null;
 
         renderAll();
-        alert("La clase ha sido registrada como vista. Ahora puedes tomar la prueba.");
+        showNotice("La clase quedó marcada como vista. Ahora puedes tomar la prueba.", { title: "Clase vista" });
       }
     }
 
@@ -1092,6 +1297,7 @@
       currentProgress = await loadProgress(user.uid);
 
       selectedModuleIndex = getActiveModuleIndex(currentProgress);
+      selectedClassIndex = getResumeClassIndex(currentProgress, selectedModuleIndex);
 
       renderAll();
     });

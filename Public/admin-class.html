@@ -1,3 +1,4 @@
+<!-- Public/admin-class.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -35,37 +36,37 @@
     <div class="card">
       <div class="row" style="justify-content:space-between;">
         <div>
-          <div class="small">Agregar / editar clase</div>
-          <div class="small">*Para editar una clase existente, usa el botón “Editar” en la lista de abajo.</div>
+          <div class="small">Nueva clase</div>
+          <div class="small">Pon el título y el enlace de YouTube. Luego guarda y agrega las preguntas.</div>
         </div>
         <div class="small" id="statusMsg"></div>
       </div>
 
       <div class="grid" style="margin-top:10px;">
-        <div>
+        <div class="hidden">
           <label>ID clase</label>
           <input id="classId" placeholder="1" />
         </div>
         <div>
-          <label>Título</label>
-          <input id="classTitle" placeholder="Clase 1" />
+          <label>Título de la clase</label>
+          <input id="classTitle" placeholder="Ej: Efesios Capítulo 1" />
+        </div>
+        <div>
+          <label>Video de YouTube</label>
+          <input id="classVideoUrl" placeholder="https://www.youtube.com/watch?v=..." />
         </div>
         <div>
           <label>Orden</label>
           <input id="classOrder" type="number" placeholder="1" />
         </div>
         <div>
-          <label>Video URL (YouTube)</label>
-          <input id="classVideoUrl" placeholder="https://www.youtube.com/watch?v=..." />
+          <label>Nota mínima para aprobar (%)</label>
+          <input id="classPassScore" type="number" placeholder="80" value="80" />
         </div>
-        <div>
-          <label>PassScore (%)</label>
-          <input id="classPassScore" type="number" placeholder="80" />
-        </div>
-        <div>
+        <div class="hidden">
           <label>Activo</label>
           <select id="classActive">
-            <option value="true">true</option>
+            <option value="true" selected>true</option>
             <option value="false">false</option>
           </select>
         </div>
@@ -73,6 +74,7 @@
 
       <div class="row" style="margin-top:12px;">
         <button class="btn btn-primary" id="saveClassBtn" type="button">Guardar clase</button>
+        <button class="btn btn-ghost hidden" id="goQuestionsBtn" type="button">Agregar preguntas →</button>
 
         <!-- KEEP IT for admin.js (but hidden) -->
         <button class="btn btn-ghost hidden" id="loadClassBtn" type="button">Cargar clase</button>

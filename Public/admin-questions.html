@@ -1,3 +1,4 @@
+<!-- Public/admin-questions.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,35 +39,37 @@
     <div class="card">
       <div class="row" style="justify-content:space-between;">
         <div>
-          <div style="font-weight:700;">Agregar / editar pregunta</div>
-          <div class="small">Aquí editas la pregunta y sus 4 respuestas (A–D) para ESTA clase.</div>
+          <div style="font-weight:700;">Pregunta de esta clase</div>
+          <div class="small">Escribe la pregunta, las 4 respuestas y marca cuál es la correcta.</div>
         </div>
         <div class="small" id="statusMsg"></div>
       </div>
 
       <div class="grid" style="margin-top:10px;">
-        <div>
+        <div class="hidden">
           <label>ID pregunta</label>
           <input id="questionId" placeholder="1" />
         </div>
-        <div>
+        <div class="hidden">
           <label>Orden</label>
           <input id="questionOrder" type="number" placeholder="1" />
         </div>
-        <div>
+        <div class="hidden">
           <label>Correcta (0-3)</label>
           <input id="correctIndex" type="number" min="0" max="3" placeholder="0" />
         </div>
-        <div>
+        <div class="hidden">
           <label>Activo</label>
           <select id="questionActive">
-            <option value="true">true</option>
+            <option value="true" selected>true</option>
             <option value="false">false</option>
           </select>
         </div>
         <div>
-          <label>&nbsp;</label>
-          <button class="btn btn-primary" id="saveQuestionAllBtn" type="button">Guardar (Pregunta + Respuestas)</button>
+          <button class="btn btn-primary" id="saveQuestionAllBtn" type="button">Guardar pregunta</button>
+        </div>
+        <div>
+          <button class="btn btn-ghost" id="newQuestionBtn" type="button">Nueva pregunta</button>
         </div>
       </div>
 
@@ -106,7 +109,7 @@
         </div>
 
         <div class="small" style="margin-top:8px;">
-          Tip: si dejas el ID en blanco, se usará el “Orden” como ID.
+          Después de guardar puedes pulsar “Nueva pregunta” y seguir agregando.
         </div>
       </div>
     </div>

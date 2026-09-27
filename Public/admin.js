@@ -1,3 +1,4 @@
+// Public/admin.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { FIREBASE_CONFIG, ADMIN_EMAILS } from "./js/firebase-config.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
@@ -503,22 +504,45 @@ async function initClassesPage() {
     });
   }
 
+  const goQuestionsBtn = $("goQuestionsBtn");
+
+  async function nextClassOrder() {
+    const snap = await getDocs(collection(db, "modules", moduleId, "classes"));
+    let max = 0;
+    snap.forEach(d => {
+      const o = Number((d.data() || {}).order) || Number(d.id) || 0;
+      if (o > max) max = o;
+    });
+    return max + 1;
+  }
+
   saveClassBtn?.addEventListener("click", async () => {
+    if (!val(classTitleEl)) return flash(statusMsg, "Pon el título de la clase.", false);
+    if (!val(classVideoUrlEl)) return flash(statusMsg, "Pon el enlace de YouTube.", false);
+
+    if (!val(classOrderEl)) classOrderEl.value = String(await nextClassOrder());
     const classId = resolveId(classIdEl, classOrderEl);
-    if (!classId) return flash(statusMsg, "Falta ID u Orden de la clase.", false);
+    if (!classId) return flash(statusMsg, "No se pudo crear el número de clase.", false);
 
     const data = {
       title: val(classTitleEl),
       order: num(classOrderEl, 1),
       videoUrl: val(classVideoUrlEl),
       passScore: num(classPassScoreEl, 80),
-      active: val(classActiveEl) === "true",
+      active: true,
       updatedAt: Date.now()
     };
 
     await setDoc(doc(db, "modules", moduleId, "classes", classId), data, { merge: true });
     classIdEl.value = classId;
-    flash(statusMsg, "✅ Clase guardada.");
+    flash(statusMsg, "✅ Clase guardada. Ahora puedes agregar las preguntas.");
+    if (goQuestionsBtn) {
+      goQuestionsBtn.classList.remove("hidden");
+      goQuestionsBtn.onclick = () => {
+        window.location.href =
+          `./admin-questions.html?moduleId=${encodeURIComponent(moduleId)}&classId=${encodeURIComponent(classId)}`;
+      };
+    }
     await refreshClassesList();
   });
 
@@ -726,19 +750,27 @@ async function initQuestionsPage() {
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       try {
-        // ✅ hard validation – do not save if anything important is missing
-      if (
-        !val(questionIdEl) ||
-        !val(questionOrderEl) ||
+        if (
         !val(questionTextEl) ||
         !val(a0) || !val(a1) || !val(a2) || !val(a3) ||
         pickedCorrectIndex() === null
       ) {
-        alert("Completa TODOS los campos (ID, orden, texto, respuestas y correcta).");
+        alert("Completa la pregunta, las 4 respuestas y marca la correcta.");
         return;
       }
+        if (!val(questionOrderEl) || !val(questionIdEl)) {
+          const snap = await getDocs(collection(db, "modules", moduleId, "classes", classId, "questions"));
+          let max = 0;
+          snap.forEach(d => {
+            const o = Number((d.data() || {}).order) || Number(d.id) || 0;
+            if (o > max) max = o;
+          });
+          const next = String(max + 1);
+          if (!val(questionOrderEl)) questionOrderEl.value = next;
+          if (!val(questionIdEl)) questionIdEl.value = next;
+        }
         const qId = resolveId(questionIdEl, questionOrderEl);
-        if (!qId) return alert("Pon un ID o un Orden.");
+        if (!qId) return alert("No se pudo crear el número de pregunta.");
 
         const order = num(questionOrderEl, 1);
 
@@ -772,7 +804,7 @@ async function initQuestionsPage() {
         }
 
         questionIdEl.value = qId;
-        flash(statusMsg, "✅ Guardado.");
+        flash(statusMsg, "✅ Pregunta guardada. Puedes agregar otra.");
         await renderList();
       } catch (err) {
         console.error("❌ Error guardando pregunta:", err);
@@ -780,6 +812,19 @@ async function initQuestionsPage() {
       }
     });
   }
+
+  document.getElementById("newQuestionBtn")?.addEventListener("click", () => {
+    questionIdEl.value = "";
+    questionOrderEl.value = "";
+    questionTextEl.value = "";
+    if (a0) a0.value = "";
+    if (a1) a1.value = "";
+    if (a2) a2.value = "";
+    if (a3) a3.value = "";
+    setRadio(-1);
+    if (correctIndexEl) correctIndexEl.value = "";
+    flash(statusMsg, "Lista para una nueva pregunta.");
+  });
 
   await renderList();
 }

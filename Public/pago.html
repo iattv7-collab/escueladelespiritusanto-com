@@ -1,3 +1,4 @@
+<!-- Public/pago.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -151,7 +152,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
     import { FIREBASE_CONFIG } from "./js/firebase-config.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
     const firebaseConfig = FIREBASE_CONFIG;
 
@@ -236,10 +237,18 @@
     function showOverlay() { loadingOverlay.style.display = "flex"; }
     function hideOverlay() { loadingOverlay.style.display = "none"; }
 
-    function prevModuleComplete(progress, moduleNumber) {
+    async function prevModuleComplete(progress, moduleNumber) {
       if (moduleNumber <= 1) return true;
-      const prev = moduleNumber - 1;
-      for (let c = 1; c <= CLASSES_PER_MODULE; c++) {
+      const prev = String(moduleNumber - 1);
+      let classCount = 0;
+      try {
+        const snap = await getDocs(query(collection(db, "modules", prev, "classes"), orderBy("order")));
+        classCount = snap.size;
+      } catch (e) {
+        classCount = 0;
+      }
+      if (!classCount) classCount = CLASSES_PER_MODULE;
+      for (let c = 1; c <= classCount; c++) {
         const key = `${prev}-${c}`;
         if (!progress.passedTests || !progress.passedTests[key]) return false;
       }
@@ -270,17 +279,18 @@
 
       const alreadyPaid = !!progress.paidModules[moduleToPay];
 
-      // ✅ Only block if already paid
       if (alreadyPaid) {
         window.location.href = "./materiales.html";
         return;
       }
 
-      // ✅ Optional note if they haven't completed previous module yet (DOES NOT BLOCK)
-      if (!prevModuleComplete(progress, moduleToPay)) {
+      const ready = await prevModuleComplete(progress, moduleToPay);
+      if (!ready) {
+        payBox.style.display = "none";
         noteBox.style.display = "block";
         noteBox.textContent =
-          "Nota: Aunque puedas pagar este módulo ahora, el sistema puede seguir pidiéndote terminar el módulo anterior para avanzar en el orden normal.";
+          "Primero termina todas las pruebas del módulo anterior. Después podrás pagar este módulo.";
+        return;
       }
 
       moduleLabel.textContent = "Estás activando el Módulo " + moduleToPay;

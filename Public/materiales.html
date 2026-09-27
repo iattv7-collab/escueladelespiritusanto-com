@@ -1,3 +1,4 @@
+<!-- Public/materiales.html -->
 <!DOCTYPE html>
 <html lang="es">
 
@@ -165,9 +166,63 @@
     }
 
     .module-nav-item.locked {
-      opacity: .45;
-      cursor: default;
+      opacity: .42;
+      cursor: pointer;
       transform: none;
+    }
+
+    .module-nav-item.locked:hover {
+      opacity: .55;
+      background: rgba(251, 191, 36, 0.18);
+    }
+
+    .class-item.locked {
+      opacity: .45;
+      cursor: pointer;
+    }
+
+    .class-item.locked:hover {
+      opacity: .6;
+    }
+
+    .notice-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, .62);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2100;
+      padding: 1rem;
+    }
+
+    .notice-box {
+      background: #0f172a;
+      border: 1px solid rgba(251, 191, 36, .35);
+      border-radius: 1rem;
+      padding: 1.1rem 1.15rem 1rem;
+      max-width: 420px;
+      width: 100%;
+      color: #fff;
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+
+    .notice-box h3 {
+      margin: 0 0 .45rem;
+      font-size: 1.05rem;
+    }
+
+    .notice-box p {
+      margin: 0 0 1rem;
+      color: rgba(226, 232, 240, .85);
+      font-size: .9rem;
+      line-height: 1.4;
+    }
+
+    .notice-actions {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
     }
 
     .module-nav-label { font-weight: 500; }
@@ -521,6 +576,17 @@
     </footer>
   </div>
 
+  <div class="notice-backdrop" id="noticeModal">
+    <div class="notice-box">
+      <h3 id="noticeTitle">Aún no disponible</h3>
+      <p id="noticeText"></p>
+      <div class="notice-actions">
+        <button type="button" class="btn" id="noticeOkBtn">Entendido</button>
+        <button type="button" class="btn" id="noticePayBtn" style="display:none;">Pagar este módulo</button>
+      </div>
+    </div>
+  </div>
+
   <div class="video-modal-backdrop" id="videoModal">
     <div class="video-modal">
       <button class="video-modal-close" id="closeModalBtn">×</button>
@@ -543,6 +609,53 @@
     const videoModal = document.getElementById("videoModal");
     const videoFrame = document.getElementById("videoFrame");
     const closeModalBtn = document.getElementById("closeModalBtn");
+    const noticeModal = document.getElementById("noticeModal");
+    const noticeTitle = document.getElementById("noticeTitle");
+    const noticeText = document.getElementById("noticeText");
+    const noticeOkBtn = document.getElementById("noticeOkBtn");
+    const noticePayBtn = document.getElementById("noticePayBtn");
+
+    let noticePayModule = null;
+
+    function showNotice(text, opts = {}) {
+      noticeTitle.textContent = opts.title || "Aún no disponible";
+      noticeText.textContent = text;
+      noticePayModule = opts.payModule || null;
+      noticePayBtn.style.display = noticePayModule ? "inline-block" : "none";
+      noticeModal.style.display = "flex";
+    }
+
+    function hideNotice() {
+      noticeModal.style.display = "none";
+      noticePayModule = null;
+    }
+
+    noticeOkBtn?.addEventListener("click", hideNotice);
+    noticeModal?.addEventListener("click", (e) => {
+      if (e.target === noticeModal) hideNotice();
+    });
+    noticePayBtn?.addEventListener("click", () => {
+      if (noticePayModule) goToPayment(noticePayModule);
+    });
+
+    function canPayModule(progress, mIndex) {
+      mIndex = Number(mIndex);
+      if (mIndex <= 1) return !progress.paidModules[mIndex];
+      return isModuleFullyCompleted(progress, mIndex - 1) && !progress.paidModules[mIndex];
+    }
+
+    function lockedModuleMessage(progress, mIndex) {
+      if (mIndex <= 1) {
+        return "Empieza por el Módulo 1. Mira la clase y luego toma la prueba.";
+      }
+      if (!isModuleFullyCompleted(progress, mIndex - 1)) {
+        return `Primero termina todas las pruebas del Módulo ${mIndex - 1}. Después podrás pagar y ver el Módulo ${mIndex}.`;
+      }
+      if (!progress.paidModules[mIndex]) {
+        return `Ya completaste el módulo anterior. Para ver el Módulo ${mIndex} primero debes pagarlo.`;
+      }
+      return `El Módulo ${mIndex} se abrirá cuando completes el anterior.`;
+    }
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
     import { FIREBASE_CONFIG } from "./js/firebase-config.js";
@@ -734,15 +847,17 @@
 
         btn.innerHTML = `
           <span class="module-nav-label">Módulo ${mIndex}</span>
-          <span class="module-nav-status">${completed ? "Completado" : unlocked ? "Disponible" : "Bloqueado"}</span>
+          <span class="module-nav-status">${completed ? "Completado" : unlocked ? "Disponible" : ""}</span>
         `;
 
-        if (unlocked) {
-          btn.addEventListener("click", () => {
-            selectedModuleIndex = mIndex;
-            renderAll();
-          });
-        }
+        btn.addEventListener("click", () => {
+          if (!unlocked) {
+            showNotice(lockedModuleMessage(p, mIndex));
+            return;
+          }
+          selectedModuleIndex = mIndex;
+          renderAll();
+        });
 
         modulesSidebar.appendChild(btn);
       }
@@ -774,9 +889,9 @@
           ${modTitle ? `<div style="font-size:1.15rem; font-weight:700; color:#fff; margin-top:.15rem;">${modTitle}</div>` : ""}
 
           <div class="module-subnote">
-            ${!moduleUnlocked ? "Este módulo se abrirá cuando completes el anterior."
-              : moduleCompleted ? "Módulo completado."
-                : "Avanza clase por clase."}
+            ${moduleCompleted ? "Módulo completado."
+              : moduleUnlocked ? "Avanza clase por clase."
+                : "Este módulo se verá con claridad cuando termines el anterior."}
           </div>
         </div>
       `;
@@ -802,13 +917,14 @@
         const title = (cls.title && String(cls.title).trim()) ? cls.title : `Clase ${cIndex}`;
 
         let controls = "";
+        let lockReason = "";
 
         if (!moduleUnlocked) {
-          controls = `<span class="lock">🔒</span>`;
+          item.classList.add("locked");
+          lockReason = lockedModuleMessage(p, mIndex);
+          controls = "";
         } else if (!modulePaid) {
-          controls = `
-            <button class="small-btn" onclick="goToPayment('${mIndex}')">Ver clase</button>
-          `;
+          controls = `<button class="small-btn" type="button" data-go-pay="1">Ver clase</button>`;
         } else if (unlockedClass) {
           const watchBtnLabel = passed ? "Ver otra vez" : "Ver clase";
 
@@ -818,7 +934,7 @@
           } else if (watched) {
             testBtn = `<button class="small-btn test-ready" onclick="openTestPage('${key}')">Tomar prueba</button>`;
           } else {
-            testBtn = `<button class="small-btn" disabled>Tomar prueba</button>`;
+            testBtn = `<button class="small-btn" type="button" data-need-watch="1">Tomar prueba</button>`;
           }
 
           controls = `
@@ -826,13 +942,34 @@
             ${testBtn}
           `;
         } else {
-          controls = `<span class="lock">🔒</span>`;
+          item.classList.add("locked");
+          lockReason = "Primero aprueba la prueba de la clase anterior.";
+          controls = "";
         }
 
         item.innerHTML = `
           <div class="class-title">${title}</div>
           <div class="class-actions">${controls}</div>
         `;
+
+        if (lockReason) {
+          item.addEventListener("click", () => {
+            showNotice(lockReason);
+          });
+        } else {
+          item.querySelectorAll("[data-go-pay]").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              goToPayment(mIndex);
+            });
+          });
+          item.querySelectorAll("[data-need-watch]").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              showNotice("Primero mira la clase. Después podrás tomar la prueba.");
+            });
+          });
+        }
 
         classList.appendChild(item);
       }

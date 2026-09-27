@@ -139,40 +139,45 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: .35rem .55rem;
-      border-radius: .6rem;
-      background: rgba(251, 191, 36, 0.18);
-      border: 1px solid rgba(251, 191, 36, 0.35);
-      color: #fff8e1;
+      padding: .45rem .6rem;
+      border-radius: .65rem;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .14);
+      color: #e2e8f0;
       font-size: .8rem;
       cursor: pointer;
-      transition: background .15s ease, border-color .15s ease, transform .1s ease;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
     }
 
     .module-nav-item:hover {
-      background: rgba(251, 191, 36, 0.30);
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, .14);
     }
 
+    /* You are in this module */
     .module-nav-item.active {
-      border-color: #fbbf24;
-      background: rgba(251, 191, 36, 0.40);
+      background: #16a34a;
+      border-color: #86efac;
+      color: #fff;
+      font-weight: 800;
     }
 
-    .module-nav-item.completed {
-      background: rgba(34, 197, 94, .25);
-      border-color: rgba(34, 197, 94, .55);
+    /* Finished, but not the one open */
+    .module-nav-item.completed:not(.active) {
+      background: rgba(22, 163, 74, .28);
+      border-color: rgba(134, 239, 172, .55);
+      color: #dcfce7;
     }
 
     .module-nav-item.locked {
-      opacity: .42;
-      cursor: pointer;
-      transform: none;
+      opacity: .45;
+      background: rgba(15, 23, 42, .55);
+      border-color: rgba(148, 163, 184, .25);
+      color: #94a3b8;
     }
 
     .module-nav-item.locked:hover {
-      opacity: .55;
-      background: rgba(251, 191, 36, 0.18);
+      opacity: .6;
+      background: rgba(15, 23, 42, .55);
     }
 
     .class-item.locked {
@@ -351,38 +356,41 @@
     }
     .stepper {
       display: flex;
-      justify-content: space-between;
-      gap: .35rem;
+      gap: .5rem;
       margin-top: 1.1rem;
       flex-wrap: wrap;
     }
     .step {
       flex: 1;
-      min-width: 2rem;
+      min-width: 6.5rem;
       text-align: center;
-      background: none;
-      border: none;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
       cursor: pointer;
-      color: #94a3b8;
+      color: #475569;
       font-weight: 700;
       font-family: inherit;
+      font-size: .82rem;
+      padding: .55rem .7rem;
     }
-    .step span {
-      display: inline-flex;
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid #cbd5e1;
-      margin-bottom: .2rem;
-      font-size: .78rem;
+    .step.done {
+      background: #e2e8f0;
+      color: #334155;
+      border-color: #cbd5e1;
     }
-    .step.done { color: #16a34a; }
-    .step.done span { background: #16a34a; border-color: #16a34a; color: #fff; }
-    .step.current { color: #d97706; }
-    .step.current span { background: #f59e0b; border-color: #f59e0b; color: #fff; }
-    .step.locked { opacity: .55; cursor: pointer; }
+    .step.current {
+      background: #fff;
+      color: #b45309;
+      border: 2px solid #f5b942;
+    }
+    .step.locked { opacity: .55; }
+    .class-status {
+      margin-top: .85rem;
+      font-weight: 700;
+      color: #334155;
+      font-size: .95rem;
+    }
 
 
     .module-header-main {
@@ -1012,10 +1020,14 @@
         if (!unlocked) btn.classList.add("locked");
         if (mIndex === selectedModuleIndex) btn.classList.add("active");
 
-        const lockMark = !unlocked ? "🔒" : completed ? "✓" : "";
+        const status = mIndex === selectedModuleIndex
+          ? "Aquí"
+          : completed ? "✓"
+          : !unlocked ? "🔒"
+          : "";
         btn.innerHTML = `
           <span class="module-nav-label">Módulo ${mIndex}</span>
-          <span class="module-nav-status">${lockMark || (completed ? "Completado" : "")}</span>
+          <span class="module-nav-status">${status}</span>
         `;
 
         btn.addEventListener("click", () => {
@@ -1105,47 +1117,48 @@
         ctaAction = "test";
         boardAction = "video";
       } else if (passed) {
-        const nextCls = classes.find(c => c._index === cIndex + 1);
-        if (nextCls) {
-          ctaLabel = "Siguiente clase";
-          ctaAction = "next-class";
-          boardAction = "video";
-        } else {
-          const nxt = mIndex + 1;
-          const nextMod = getModuleByIndex(nxt);
-          if (nextMod && canPayModule(p, nxt)) {
-            ctaLabel = "Pagar siguiente módulo";
-            ctaAction = "pay-next";
-            boardAction = "video";
-          } else {
-            ctaLabel = "Ver otra vez";
-            ctaAction = "video";
-            boardAction = "video";
-          }
-        }
+        ctaLabel = "";
+        ctaAction = "";
+        boardAction = "video";
       }
 
       const steps = classes.map(c => {
         const k = classKey(mIndex, c._index);
         const done = !!p.passedTests[k];
         const cur = c._index === cIndex;
-        const clsName = done ? "done" : cur ? "current" : "step";
         const extra = (!modulePaid || !isClassUnlocked(p, mIndex, c._index)) && !done ? " locked" : "";
-        return `<button type="button" class="step ${done ? "done" : ""} ${cur ? "current" : ""} ${extra}" data-step="${c._index}"><span>${done ? "✓" : c._index}</span><div>${c._index}</div></button>`;
+        let word = "Pendiente";
+        if (done) word = "Completada";
+        else if (cur) word = "En curso";
+        const label = `${c._index} ${word}`;
+        return `<button type="button" class="step ${done ? "done" : ""} ${cur ? "current" : ""} ${extra}" data-step="${c._index}">${label}</button>`;
       }).join("");
 
       const boardInner = thumb
         ? `<img src="${thumb}" alt="">`
         : `<div class="board-fallback">Clase ${cIndex}</div>`;
 
+      const moduleDone = isModuleFullyCompleted(p, mIndex);
+      const statusLine = moduleDone
+        ? `<div class="class-status">Felicitaciones. Completaste este módulo.</div>`
+        : passed
+          ? `<div class="class-status">Esta clase ya está aprobada.</div>`
+          : watched
+            ? `<div class="class-status">Pendiente: presentar la prueba.</div>`
+            : `<div class="class-status">Pendiente: ver la clase.</div>`;
+      const ctaHtml = ctaLabel
+        ? `<button type="button" class="cta" id="classCta">${ctaLabel}</button>`
+        : "";
+
       moduleDetail.innerHTML = `
         <div class="classroom-card">
           <div class="continue-label">Continúa aquí</div>
-          <h2>Clase ${cIndex} — ${title}</h2>
+          <h2>${title}</h2>
           <div class="class-meta">Módulo ${mIndex}${mod.title ? " · " + mod.title : ""} · Clase ${cIndex} de ${total}</div>
           <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="board" id="classBoard">${boardInner}<div class="play-fab"><span>▶</span></div></div>
-          <button type="button" class="cta" id="classCta">${ctaLabel}</button>
+          ${statusLine}
+          ${ctaHtml}
           <div class="stepper">${steps}</div>
         </div>
       `;
@@ -1296,8 +1309,10 @@
       await loadModulesFromFirestore();
       currentProgress = await loadProgress(user.uid);
 
-      selectedModuleIndex = getActiveModuleIndex(currentProgress);
-      selectedClassIndex = getResumeClassIndex(currentProgress, selectedModuleIndex);
+      const wantM = Number(new URLSearchParams(location.search).get("m") || 0);
+      const wantC = Number(new URLSearchParams(location.search).get("c") || 0);
+      selectedModuleIndex = wantM || getActiveModuleIndex(currentProgress);
+      selectedClassIndex = wantC || getResumeClassIndex(currentProgress, selectedModuleIndex);
 
       renderAll();
     });

@@ -1,3 +1,4 @@
+<!-- Public/test.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -288,11 +289,63 @@
 
         await saveProgress(user.uid, modId, classId, scorePercent, passPercent, results);
 
-        if (passed) {
-          alert(`Aprobaste. Puntaje: ${scorePercent}% (mínimo ${passPercent}%)`);
-          location.href = "./materiales.html";
+        if (!passed) {
+          setMsg(`No aprobaste. Puntaje: ${scorePercent}% (mínimo ${passPercent}%). Puedes intentarlo de nuevo.`);
+          return;
+        }
+
+        let classesSnap;
+        try {
+          classesSnap = await getDocs(query(collection(db, "modules", modId, "classes"), orderBy("order", "asc")));
+        } catch (e) {
+          classesSnap = await getDocs(collection(db, "modules", modId, "classes"));
+        }
+        const classIds = classesSnap.docs.map(d => d.id);
+        const here = classIds.indexOf(String(classId));
+        const nextClassId = here >= 0 ? classIds[here + 1] : null;
+
+        let nextModuleId = null;
+        if (!nextClassId) {
+          let modsSnap;
+          try {
+            modsSnap = await getDocs(query(collection(db, "modules"), orderBy("order", "asc")));
+          } catch (e) {
+            modsSnap = await getDocs(collection(db, "modules"));
+          }
+          const modIds = modsSnap.docs.map(d => d.id);
+          const mi = modIds.indexOf(String(modId));
+          nextModuleId = mi >= 0 ? modIds[mi + 1] : null;
+        }
+
+        document.querySelector(".muted").style.display = "none";
+        elWrap.innerHTML = "";
+        elBtn.style.display = "none";
+
+        if (nextClassId) {
+          elTitle.textContent = "Felicitaciones. Clase aprobada.";
+          setMsg(`Puntaje: ${scorePercent}%. Puedes seguir con la siguiente clase.`);
+          const go = document.createElement("button");
+          go.textContent = "Abrir la siguiente clase";
+          go.onclick = () => {
+            location.href = `./materiales.html?m=${encodeURIComponent(modId)}&c=${encodeURIComponent(nextClassId)}`;
+          };
+          elWrap.appendChild(go);
+        } else if (nextModuleId) {
+          elTitle.textContent = "Felicitaciones. Completaste este módulo.";
+          setMsg(`Puntaje: ${scorePercent}%. Ya puedes continuar con el siguiente módulo cuando quieras.`);
+          const go = document.createElement("button");
+          go.textContent = "Ir al siguiente módulo";
+          go.onclick = () => {
+            location.href = `./materiales.html?m=${encodeURIComponent(nextModuleId)}`;
+          };
+          elWrap.appendChild(go);
         } else {
-          alert(`No aprobaste. Puntaje: ${scorePercent}% (mínimo ${passPercent}%). Intenta de nuevo.`);
+          elTitle.textContent = "Felicitaciones. Completaste este módulo.";
+          setMsg(`Puntaje: ${scorePercent}%.`);
+          const go = document.createElement("button");
+          go.textContent = "Volver al aula";
+          go.onclick = () => { location.href = "./materiales.html"; };
+          elWrap.appendChild(go);
         }
       });
     });

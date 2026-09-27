@@ -69,6 +69,8 @@ async function initDashboardPage() {
   const usersTableBody = document.getElementById("usersTableBody");
   const logoutBtn = document.getElementById("logoutBtn");
   const searchInput = document.getElementById("searchInput");
+  const pendingOnly = document.getElementById("pendingOnly");
+  const pendingSummary = document.getElementById("pendingSummary");
 
   let renderedRows = [];
 
@@ -89,6 +91,37 @@ async function initDashboardPage() {
 
     return pending.length ? String(pending[0]) : null;
   }
+  function waLink(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (digits.length < 8) return "";
+    return `https://wa.me/${digits}`;
+  }
+
+  async function saveProgress(uid, mutator) {
+    const ref = doc(db, "userProgress", uid);
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? (snap.data() || {}) : {};
+    data.paidModules ??= {};
+    data.paymentPending ??= {};
+    data.passedTests ??= {};
+    data.videoWatched ??= {};
+    mutator(data);
+    await setDoc(ref, data, { merge: true });
+    await loadData();
+  }
+
+  function applyFilters() {
+    const s = String(searchInput?.value || "").toLowerCase();
+    const onlyPending = !!pendingOnly?.checked;
+    renderedRows.forEach(row => {
+      const email = row.dataset.email || "";
+      const nombre = row.dataset.nombre || "";
+      const wa = row.dataset.whatsapp || "";
+      const match = !s || email.includes(s) || nombre.includes(s) || wa.includes(s);
+      const pendingOk = !onlyPending || row.dataset.pending === "1";
+      row.style.display = (match && pendingOk) ? "" : "none";
+    });
+  }
 
   async function loadData() {
     usersTableBody.innerHTML = `<tr><td colspan="6">Cargando…</td></tr>`;
@@ -103,114 +136,132 @@ async function initDashboardPage() {
     const progressMap = {};
     progressSnap.forEach(d => (progressMap[d.id] = d.data() || {}));
 
-    usersTableBody.innerHTML = "";
-
     const uids = Object.keys(usersMap);
     if (uids.length === 0) {
       usersTableBody.innerHTML = `<tr><td colspan="6">No hay usuarios todavía.</td></tr>`;
+      if (pendingSummary) pendingSummary.textContent = "Pagos pendientes: 0";
       return;
     }
+
+    uids.sort((a, b) => {
+      const pa = firstPendingModule((progressMap[a] || {}).paymentPending) ? 0 : 1;
+      const pb = firstPendingModule((progressMap[b] || {}).paymentPending) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return safeLower((usersMap[a] || {}).email).localeCompare(safeLower((usersMap[b] || {}).email));
+    });
+
+    usersTableBody.innerHTML = "";
+    let pendingCount = 0;
 
     for (const uid of uids) {
       const user = usersMap[uid] || {};
       const prog = progressMap[uid] || {};
+      const pendModule = firstPendingModule(prog.paymentPending);
+      if (pendModule) pendingCount += 1;
 
       const paid = listTrueKeys(prog.paidModules);
       const tests = listTrueKeys(prog.passedTests);
+      const wa = waLink(user.whatsapp);
+      const waHtml = user.whatsapp
+        ? (wa ? `<a href="${wa}" target="_blank" rel="noopener" class="wa">${user.whatsapp}</a>` : user.whatsapp)
+        : "-";
 
       const tr = document.createElement("tr");
       tr.dataset.uid = uid;
       tr.dataset.email = safeLower(user.email);
       tr.dataset.nombre = safeLower(user.nombre);
+      tr.dataset.whatsapp = String(user.whatsapp || "").replace(/\D/g, "");
+      tr.dataset.pending = pendModule ? "1" : "0";
 
       tr.innerHTML = `
         <td>${user.email || "-"}</td>
         <td>${user.nombre || "-"}</td>
-        <td>${(user.whatsapp || "-")} ${user.pais ? "/ " + user.pais : ""}</td>
+        <td>${waHtml}${user.pais ? " / " + user.pais : ""}</td>
         <td>${paid}</td>
         <td>${tests}</td>
-        <td class="action-cell">-</td>
+        <td class="action-cell"></td>
       `;
 
-      const pendModule = firstPendingModule(prog.paymentPending);
-      if (pendModule) {
-        const cell = tr.querySelector(".action-cell");
-        cell.textContent = "";
+      const cell = tr.querySelector(".action-cell");
+      const box = document.createElement("div");
+      box.className = "pending-box";
 
-        const box = document.createElement("div");
-        box.className = "pending-box";
-        box.innerHTML = `<strong>Mód. ${pendModule}</strong> <span class="small">Pago directo</span>`;
+      if (pendModule) {
+        const label = document.createElement("span");
+        label.innerHTML = `<strong>Mód. ${pendModule}</strong> <span class="small">Pago directo</span>`;
+        box.appendChild(label);
 
         const btnA = document.createElement("button");
         btnA.className = "btn-sm btn-approve";
+        btnA.type = "button";
         btnA.textContent = "Aprobar";
-
-        btnA.onclick = async () => {
-          const ref = doc(db, "userProgress", uid);
-          const snap = await getDoc(ref);
-          const data = snap.exists() ? (snap.data() || {}) : {};
-
-          data.paidModules ??= {};
-          data.paymentPending ??= {};
-          data.passedTests ??= {};
-          data.videoWatched ??= {};
-
+        btnA.onclick = () => saveProgress(uid, (data) => {
           let pend = firstPendingModule(data.paymentPending);
           if (!pend && data.paymentPending["0"] === true) pend = "1";
-
           if (!pend) {
             alert("Este usuario no tiene pago pendiente válido.");
-            await loadData();
             return;
           }
-
           data.paidModules[String(pend)] = true;
           delete data.paymentPending[String(pend)];
           delete data.paymentPending["0"];
-
-          await setDoc(ref, data, { merge: true });
-          await loadData();
-        };
+        });
 
         const btnR = document.createElement("button");
         btnR.className = "btn-sm btn-reject";
+        btnR.type = "button";
         btnR.textContent = "Rechazar";
-
-        btnR.onclick = async () => {
-          const ref = doc(db, "userProgress", uid);
-          const snap = await getDoc(ref);
-          const data = snap.exists() ? (snap.data() || {}) : {};
-
-          data.paymentPending ??= {};
-
+        btnR.onclick = () => saveProgress(uid, (data) => {
           let pend = firstPendingModule(data.paymentPending);
           if (!pend && data.paymentPending["0"] === true) pend = "1";
-
           if (pend) delete data.paymentPending[String(pend)];
           delete data.paymentPending["0"];
-
-          await setDoc(ref, data, { merge: true });
-          await loadData();
-        };
+        });
 
         box.appendChild(btnA);
         box.appendChild(btnR);
-        cell.appendChild(box);
       }
 
+      const grantWrap = document.createElement("span");
+      grantWrap.style.display = "inline-flex";
+      grantWrap.style.gap = "6px";
+      grantWrap.style.alignItems = "center";
+      grantWrap.innerHTML = `
+        <select class="grant-mod" class="grant-mod">
+          <option value="1">Mód. 1</option>
+          <option value="2">Mód. 2</option>
+          <option value="3">Mód. 3</option>
+          <option value="4">Mód. 4</option>
+        </select>
+      `;
+      const grantBtn = document.createElement("button");
+      grantBtn.className = "btn-sm btn-approve";
+      grantBtn.type = "button";
+      grantBtn.textContent = "Dar acceso";
+      grantBtn.onclick = () => {
+        const sel = grantWrap.querySelector(".grant-mod");
+        const mid = sel?.value || "1";
+        if (!confirm(`¿Dar acceso al módulo ${mid} a ${user.email || "este usuario"}?`)) return;
+        return saveProgress(uid, (data) => {
+          data.paidModules[String(mid)] = true;
+          delete data.paymentPending[String(mid)];
+          delete data.paymentPending["0"];
+        });
+      };
+      grantWrap.appendChild(grantBtn);
+      box.appendChild(grantWrap);
+
+      cell.appendChild(box);
       usersTableBody.appendChild(tr);
       renderedRows.push(tr);
     }
+
+    if (pendingSummary) pendingSummary.textContent = `Pagos pendientes: ${pendingCount}`;
+    applyFilters();
   }
 
-  searchInput?.addEventListener("input", () => {
-    const s = String(searchInput.value || "").toLowerCase();
-    renderedRows.forEach(row => {
-      const email = row.dataset.email || "";
-      const nombre = row.dataset.nombre || "";
-      row.style.display = (email.includes(s) || nombre.includes(s)) ? "" : "none";
-    });
-  });
+  searchInput?.addEventListener("input", applyFilters);
+  pendingOnly?.addEventListener("change", applyFilters);
 
   logoutBtn?.addEventListener("click", async () => {
     await signOut(auth);

@@ -14,17 +14,11 @@ import {
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-
-// 🔥 escuela-ees
 const firebaseConfig = FIREBASE_CONFIG;
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ✅ Only these emails can use admin
-
-// ---------- helpers ----------
 function $(id) { return document.getElementById(id); }
 function val(el) { return (el?.value ?? "").toString().trim(); }
 function num(el, fallback = 0) {
@@ -43,23 +37,23 @@ function focusEditCard() {
   card.classList.add("editing");
   card.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 function flash(el, text, ok = true) {
   if (!el) return;
-
   el.textContent = text;
-  el.style.color = ok ? "#a7f3d0" : "#fecaca";
-
-  // ✅ Success messages (green) stay forever
+  el.style.color = ok ? "#15803d" : "#b91c1c";
+  el.style.fontWeight = "800";
+  el.style.fontSize = "15px";
+  const card = document.getElementById("editCard");
+  if (card) {
+    card.classList.remove("editing", "saved");
+    card.classList.add(ok ? "saved" : "editing");
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   if (ok) return;
-
-  // ❌ Error messages (red) still disappear after 6 seconds
   setTimeout(() => {
-    // only clear if the message hasn't changed since we set it
     if (el.textContent === text) el.textContent = "";
   }, 6000);
 }
-
 function getParam(name) {
   return new URLSearchParams(window.location.search).get(name) || "";
 }
@@ -68,10 +62,31 @@ async function doLogout() {
   window.location.href = "./admin-login.html";
 }
 
+async function requireAdmin(user) {
+  if (!user) {
+    alert("Debes iniciar sesión como administrador.");
+    window.location.href = "./admin-login.html";
+    return false;
+  }
+  if (!ADMIN_EMAILS.includes(user.email)) {
+    alert("No tienes permiso para acceder.");
+    await signOut(auth);
+    window.location.href = "./admin-login.html";
+    return false;
+  }
+  return true;
+}
 
-// =====================================================================
-//  PAGE: admin-dashboard.html
-// =====================================================================
+const isDashboardPage = !!document.getElementById("usersTableBody");
+const isModulesPage   = !!document.getElementById("modulesTableBody");
+const isClassesPage   = !!document.getElementById("classesTableBody");
+const isQuestionsPage = !!document.getElementById("questionsTableBody");
+const isEditorPage    = !!document.getElementById("saveQuestionBtn");
+
+const authStatus = $("authStatus");
+const logoutBtn = $("logoutBtn");
+if (logoutBtn) logoutBtn.addEventListener("click", doLogout);
+
 async function initDashboardPage() {
   const authStatus = document.getElementById("authStatus");
   const usersTableBody = document.getElementById("usersTableBody");
@@ -90,13 +105,11 @@ async function initDashboardPage() {
   }
   function firstPendingModule(obj) {
     if (!obj || typeof obj !== "object") return null;
-
     const pending = Object.keys(obj)
       .filter(k => obj[k] === true)
       .map(k => parseInt(k, 10))
       .filter(n => Number.isFinite(n) && n > 0)
       .sort((a, b) => a - b);
-
     return pending.length ? String(pending[0]) : null;
   }
   function waLink(raw) {
@@ -140,7 +153,6 @@ async function initDashboardPage() {
 
     const usersMap = {};
     usersSnap.forEach(d => (usersMap[d.id] = d.data() || {}));
-
     const progressMap = {};
     progressSnap.forEach(d => (progressMap[d.id] = d.data() || {}));
 
@@ -180,7 +192,6 @@ async function initDashboardPage() {
       tr.dataset.nombre = safeLower(user.nombre);
       tr.dataset.whatsapp = String(user.whatsapp || "").replace(/\D/g, "");
       tr.dataset.pending = pendModule ? "1" : "0";
-
       tr.innerHTML = `
         <td>${user.email || "-"}</td>
         <td>${user.nombre || "-"}</td>
@@ -235,7 +246,7 @@ async function initDashboardPage() {
       grantWrap.style.gap = "6px";
       grantWrap.style.alignItems = "center";
       grantWrap.innerHTML = `
-        <select class="grant-mod" class="grant-mod">
+        <select class="grant-mod">
           <option value="1">Mód. 1</option>
           <option value="2">Mód. 2</option>
           <option value="3">Mód. 3</option>
@@ -270,7 +281,6 @@ async function initDashboardPage() {
 
   searchInput?.addEventListener("input", applyFilters);
   pendingOnly?.addEventListener("change", applyFilters);
-
   logoutBtn?.addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "./admin-login.html";
@@ -280,59 +290,15 @@ async function initDashboardPage() {
   await loadData();
 }
 
-
-
-// ---------- auth gate ----------
-async function requireAdmin(user) {
-  if (!user) {
-    alert("Debes iniciar sesión como administrador.");
-    window.location.href = "./admin-login.html";
-    return false;
-  }
-  if (!ADMIN_EMAILS.includes(user.email)) {
-    alert("No tienes permiso para acceder.");
-    await signOut(auth);
-    window.location.href = "./admin-login.html";
-    return false;
-  }
-  return true;
-}
-
-// ---------- page detection (STABLE) ----------
-const isDashboardPage = !!document.getElementById("usersTableBody");      // admin-dashboard.html
-const isModulesPage   = !!document.getElementById("modulesTableBody");    // admin-module.html
-const isClassesPage   = !!document.getElementById("classesTableBody");    // admin-class.html
-const isQuestionsPage = !!document.getElementById("questionsTableBody");  // admin-questions.html
-const isEditorPage    = !!document.getElementById("saveQuestionBtn");     // admin.html
-
-
-
-// ---------- shared top UI ----------
-const authStatus = $("authStatus");
-const logoutBtn = $("logoutBtn");
-if (logoutBtn) logoutBtn.addEventListener("click", doLogout);
-
-
-// =====================================================================
-//  PAGE: admin-module.html  (list + add/edit module)
-// =====================================================================
 async function initModulesPage() {
-  console.log("✅ initModulesPage() RUNNING");
-
   const statusMsg = $("statusMsg");
-
   const moduleIdEl = $("moduleId");
   const moduleTitleEl = $("moduleTitle");
   const moduleOrderEl = $("moduleOrder");
   const modulePriceEl = $("modulePrice");
   const moduleActiveEl = $("moduleActive");
   const saveModuleBtn = $("saveModuleBtn");
-
   const tableBody = $("modulesTableBody");
-  const goEditorBtn = $("goEditorBtn");
-  if (goEditorBtn) goEditorBtn.addEventListener("click", () => {
-    window.location.href = "./admin-dashboard.html";
-  });
 
   async function refreshModulesList() {
     tableBody.innerHTML = `<tr><td colspan="3" class="small">Cargando…</td></tr>`;
@@ -400,16 +366,13 @@ async function initModulesPage() {
   saveModuleBtn?.addEventListener("click", async () => {
     const moduleId = resolveId(moduleIdEl, moduleOrderEl);
     if (!moduleId) return flash(statusMsg, "Falta ID u Orden del módulo.", false);
-
-    const data = {
+    await setDoc(doc(db, "modules", moduleId), {
       title: val(moduleTitleEl),
       order: num(moduleOrderEl, 1),
       price: num(modulePriceEl, 0),
       active: val(moduleActiveEl) === "true",
       updatedAt: Date.now()
-    };
-
-    await setDoc(doc(db, "modules", moduleId), data, { merge: true });
+    }, { merge: true });
     moduleIdEl.value = moduleId;
     flash(statusMsg, "✅ Módulo guardado.");
     await refreshModulesList();
@@ -418,13 +381,8 @@ async function initModulesPage() {
   await refreshModulesList();
 }
 
-
-// =====================================================================
-//  PAGE: admin-class.html  (list + add/edit class for a module)
-// =====================================================================
 async function initClassesPage() {
   const statusMsg = $("statusMsg");
-
   const moduleId = getParam("moduleId");
   if (!moduleId) {
     alert("Falta moduleId en la URL.");
@@ -434,7 +392,6 @@ async function initClassesPage() {
 
   const moduleInfo = $("moduleInfo");
   const classesBody = $("classesTableBody");
-
   const classIdEl = $("classId");
   const classTitleEl = $("classTitle");
   const classOrderEl = $("classOrder");
@@ -444,8 +401,7 @@ async function initClassesPage() {
   const saveClassBtn = $("saveClassBtn");
   const loadClassBtn = $("loadClassBtn");
 
-  const backBtn = $("backModulesBtn");
-  if (backBtn) backBtn.addEventListener("click", () => {
+  $("backModulesBtn")?.addEventListener("click", () => {
     window.location.href = "./admin-module.html";
   });
 
@@ -460,7 +416,6 @@ async function initClassesPage() {
 
   async function refreshClassesList() {
     classesBody.innerHTML = `<tr><td colspan="3" class="small">Cargando…</td></tr>`;
-
     const snap = await getDocs(query(collection(db, "modules", moduleId, "classes"), orderBy("order")));
     if (snap.empty) {
       classesBody.innerHTML = `<tr><td colspan="3" class="small">(sin clases)</td></tr>`;
@@ -489,14 +444,12 @@ async function initClassesPage() {
         </tr>
       `);
     });
-
     classesBody.innerHTML = rows.join("");
 
     classesBody.querySelectorAll("[data-edit-class]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const cId = btn.getAttribute("data-edit-class");
-        const ref = doc(db, "modules", moduleId, "classes", cId);
-        const snap = await getDoc(ref);
+        const snap = await getDoc(doc(db, "modules", moduleId, "classes", cId));
         if (!snap.exists()) return;
         const c = snap.data() || {};
         classIdEl.value = cId;
@@ -534,21 +487,19 @@ async function initClassesPage() {
   saveClassBtn?.addEventListener("click", async () => {
     if (!val(classTitleEl)) return flash(statusMsg, "Pon el título de la clase.", false);
     if (!val(classVideoUrlEl)) return flash(statusMsg, "Pon el enlace de YouTube.", false);
-
     if (!val(classOrderEl)) classOrderEl.value = String(await nextClassOrder());
     const classId = resolveId(classIdEl, classOrderEl);
     if (!classId) return flash(statusMsg, "No se pudo crear el número de clase.", false);
 
-    const data = {
+    await setDoc(doc(db, "modules", moduleId, "classes", classId), {
       title: val(classTitleEl),
       order: num(classOrderEl, 1),
       videoUrl: val(classVideoUrlEl),
       passScore: num(classPassScoreEl, 80),
       active: true,
       updatedAt: Date.now()
-    };
+    }, { merge: true });
 
-    await setDoc(doc(db, "modules", moduleId, "classes", classId), data, { merge: true });
     classIdEl.value = classId;
     flash(statusMsg, "✅ Clase guardada. Ahora puedes agregar las preguntas.");
     if (goQuestionsBtn) {
@@ -564,11 +515,8 @@ async function initClassesPage() {
   loadClassBtn?.addEventListener("click", async () => {
     const classId = resolveId(classIdEl, classOrderEl);
     if (!classId) return flash(statusMsg, "Pon ID u Orden de la clase para cargar.", false);
-
-    const ref = doc(db, "modules", moduleId, "classes", classId);
-    const snap = await getDoc(ref);
+    const snap = await getDoc(doc(db, "modules", moduleId, "classes", classId));
     if (!snap.exists()) return flash(statusMsg, "No existe esa clase.", false);
-
     const d = snap.data();
     classTitleEl.value = d.title ?? "";
     classOrderEl.value = d.order ?? "";
@@ -582,16 +530,9 @@ async function initClassesPage() {
   await refreshClassesList();
 }
 
-
-// =====================================================================
-//  PAGE: admin-questions.html  (questions for a specific class)
-// =====================================================================
 async function initQuestionsPage() {
-  console.log("✅ initQuestionsPage() RUNNING");
-
   const statusMsg = $("statusMsg");
   const classInfo = document.getElementById("classInfo");
-
   const moduleId = getParam("moduleId");
   const classId = getParam("classId");
 
@@ -601,12 +542,9 @@ async function initQuestionsPage() {
     return;
   }
 
-  const backBtn = document.getElementById("backClassesBtn");
-  if (backBtn) {
-    backBtn.addEventListener("click", () => {
-      window.location.href = `./admin-class.html?moduleId=${encodeURIComponent(moduleId)}`;
-    });
-  }
+  document.getElementById("backClassesBtn")?.addEventListener("click", () => {
+    window.location.href = `./admin-class.html?moduleId=${encodeURIComponent(moduleId)}`;
+  });
 
   const saveBtn = document.getElementById("saveQuestionAllBtn");
   const questionIdEl = document.getElementById("questionId");
@@ -614,20 +552,33 @@ async function initQuestionsPage() {
   const correctIndexEl = document.getElementById("correctIndex");
   const questionActiveEl = document.getElementById("questionActive");
   const questionTextEl = document.getElementById("questionText");
-
   const a0 = document.getElementById("a0");
   const a1 = document.getElementById("a1");
   const a2 = document.getElementById("a2");
   const a3 = document.getElementById("a3");
-
   const tableBody = document.getElementById("questionsTableBody");
+
+  function questionFormReady() {
+    return !!(val(questionTextEl) && val(a0) && val(a1) && val(a2) && val(a3));
+  }
+  function updateSaveBtnState() {
+    if (!saveBtn) return;
+    const ready = questionFormReady();
+    saveBtn.disabled = !ready;
+    saveBtn.style.opacity = ready ? "1" : "0.45";
+    saveBtn.style.cursor = ready ? "pointer" : "not-allowed";
+    saveBtn.style.background = ready ? "" : "#94a3b8";
+    saveBtn.style.color = ready ? "" : "#fff";
+    if (ready && saveBtn.textContent !== "Guardada ✓") saveBtn.textContent = "Guardar pregunta";
+  }
+  [questionTextEl, a0, a1, a2, a3].forEach(el => el?.addEventListener("input", updateSaveBtnState));
+  updateSaveBtnState();
 
   try {
     const cSnap = await getDoc(doc(db, "modules", moduleId, "classes", classId));
     const c = cSnap.exists() ? (cSnap.data() || {}) : {};
     if (classInfo) classInfo.textContent = `Módulo ${moduleId} → Clase ${classId}: ${c.title || ""}`;
   } catch (e) {
-    console.warn("No pude cargar classInfo:", e);
     if (classInfo) classInfo.textContent = `Módulo ${moduleId} → Clase ${classId}`;
   }
 
@@ -637,13 +588,11 @@ async function initQuestionsPage() {
     const idx = parseInt(picked.value, 10);
     return [0, 1, 2, 3].includes(idx) ? idx : null;
   }
-
   function setRadio(idx) {
     document.querySelectorAll('input[name="correctPick"]').forEach(r => {
       r.checked = (parseInt(r.value, 10) === idx);
     });
   }
-
   document.querySelectorAll('input[name="correctPick"]').forEach(r => {
     r.addEventListener("change", () => {
       const idx = pickedCorrectIndex();
@@ -653,17 +602,15 @@ async function initQuestionsPage() {
 
   async function renderList() {
     if (!tableBody) return;
-
     tableBody.innerHTML = `<tr><td colspan="3" class="small">Cargando…</td></tr>`;
-
-    const qCol = collection(db, "modules", moduleId, "classes", classId, "questions");
-    const snap = await getDocs(query(qCol, orderBy("order", "asc")));
-
+    const snap = await getDocs(query(
+      collection(db, "modules", moduleId, "classes", classId, "questions"),
+      orderBy("order", "asc")
+    ));
     if (snap.empty) {
       tableBody.innerHTML = `<tr><td colspan="3" class="small">(sin preguntas)</td></tr>`;
       return;
     }
-
     const rows = [];
     snap.forEach(d => {
       const q = d.data() || {};
@@ -678,439 +625,129 @@ async function initQuestionsPage() {
         </tr>
       `);
     });
-
     tableBody.innerHTML = rows.join("");
 
-    // ✅ EDIT (THIS IS WHAT YOU WERE MISSING)
     tableBody.querySelectorAll("[data-edit-q]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const qId = btn.getAttribute("data-edit-q");
-        if (!qId) return;
-
-        try {
-          const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
-          const qSnap = await getDoc(qRef);
-          if (!qSnap.exists()) return;
-
-          const q = qSnap.data() || {};
-          questionIdEl.value = qId;
-          questionOrderEl.value = q.order ?? "";
-          questionActiveEl.value = String(!!q.active);
-          questionTextEl.value = q.text ?? "";
-
-          const idx = (typeof q.correctIndex === "number") ? q.correctIndex : 0;
-          correctIndexEl.value = String(idx);
-          setRadio(idx);
-
-          const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers");
-          const ansSnap = await getDocs(ansCol);
-
-          const map = {};
-          ansSnap.forEach(x => (map[x.id] = x.data() || {}));
-
-          a0.value = map["0"]?.text ?? "";
-          a1.value = map["1"]?.text ?? "";
-          a2.value = map["2"]?.text ?? "";
-          a3.value = map["3"]?.text ?? "";
-
-          focusEditCard();
-          flash(statusMsg, "✅ Pregunta cargada arriba. Edítala y pulsa Guardar pregunta.");
-        } catch (err) {
-          console.error("❌ Error cargando pregunta:", err);
-          flash(statusMsg, "❌ No se pudo cargar. Mira Console (F12).", false);
-        }
+        const qSnap = await getDoc(doc(db, "modules", moduleId, "classes", classId, "questions", qId));
+        if (!qSnap.exists()) return;
+        const q = qSnap.data() || {};
+        questionIdEl.value = qId;
+        questionOrderEl.value = q.order ?? "";
+        questionActiveEl.value = String(!!q.active);
+        questionTextEl.value = q.text ?? "";
+        const idx = (typeof q.correctIndex === "number") ? q.correctIndex : 0;
+        correctIndexEl.value = String(idx);
+        setRadio(idx);
+        const ansSnap = await getDocs(collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers"));
+        const map = {};
+        ansSnap.forEach(x => (map[x.id] = x.data() || {}));
+        a0.value = map["0"]?.text ?? "";
+        a1.value = map["1"]?.text ?? "";
+        a2.value = map["2"]?.text ?? "";
+        a3.value = map["3"]?.text ?? "";
+        focusEditCard();
+        updateSaveBtnState();
+        flash(statusMsg, "✅ Pregunta cargada arriba. Edítala y pulsa Guardar pregunta.");
       });
     });
 
-    // 🗑️ DELETE (confirm + hard delete)
     tableBody.querySelectorAll("[data-del-q]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const qId = btn.getAttribute("data-del-q");
-        if (!qId) return;
-
-        const ok = confirm("¿Eliminar esta pregunta? Esto también borra sus respuestas y NO se puede deshacer.");
-        if (!ok) return;
-
-        try {
-          const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
-          const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers");
-          const ansSnap = await getDocs(ansCol);
-
-          const batch = writeBatch(db);
-          ansSnap.forEach(a => batch.delete(a.ref));
-          batch.delete(qRef);
-
-          await batch.commit();
-
-          // If you were editing this same question, clear the form
-          if ((questionIdEl?.value || "") === qId) {
-            questionIdEl.value = "";
-            questionOrderEl.value = "";
-            questionTextEl.value = "";
-            correctIndexEl.value = "0";
-            questionActiveEl.value = "true";
-            a0.value = ""; a1.value = ""; a2.value = ""; a3.value = "";
-            setRadio(0);
-          }
-
-          flash(statusMsg, "🗑️ Pregunta eliminada.");
-          await renderList();
-        } catch (err) {
-          console.error("❌ Error eliminando pregunta:", err);
-          flash(statusMsg, "❌ No se pudo eliminar. Mira Console (F12).", false);
+        if (!confirm("¿Eliminar esta pregunta? Esto también borra sus respuestas y NO se puede deshacer.")) return;
+        const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", qId);
+        const ansSnap = await getDocs(collection(db, "modules", moduleId, "classes", classId, "questions", qId, "answers"));
+        const batch = writeBatch(db);
+        ansSnap.forEach(a => batch.delete(a.ref));
+        batch.delete(qRef);
+        await batch.commit();
+        if ((questionIdEl?.value || "") === qId) {
+          questionIdEl.value = "";
+          questionOrderEl.value = "";
+          questionTextEl.value = "";
+          a0.value = ""; a1.value = ""; a2.value = ""; a3.value = "";
+          setRadio(-1);
+          updateSaveBtnState();
         }
+        flash(statusMsg, "🗑️ Pregunta eliminada.");
+        await renderList();
       });
     });
   }
 
-  if (saveBtn) {
-    saveBtn.addEventListener("click", async () => {
-      try {
-        if (
-        !val(questionTextEl) ||
-        !val(a0) || !val(a1) || !val(a2) || !val(a3) ||
-        pickedCorrectIndex() === null
-      ) {
-        alert("Completa la pregunta, las 4 respuestas y marca la correcta.");
-        return;
-      }
-        if (!val(questionOrderEl) || !val(questionIdEl)) {
-          const snap = await getDocs(collection(db, "modules", moduleId, "classes", classId, "questions"));
-          let max = 0;
-          snap.forEach(d => {
-            const o = Number((d.data() || {}).order) || Number(d.id) || 0;
-            if (o > max) max = o;
-          });
-          const next = String(max + 1);
-          if (!val(questionOrderEl)) questionOrderEl.value = next;
-          if (!val(questionIdEl)) questionIdEl.value = next;
-        }
-        const qId = resolveId(questionIdEl, questionOrderEl);
-        if (!qId) return alert("No se pudo crear el número de pregunta.");
-
-        const order = num(questionOrderEl, 1);
-
-        let idx = pickedCorrectIndex();
-        if (idx === null) {
-          const ci = parseInt((correctIndexEl?.value || "0"), 10);
-          idx = [0, 1, 2, 3].includes(ci) ? ci : null;
-        }
-        if (idx === null) return alert("Selecciona la respuesta correcta (A–D).");
-
-        const qText = val(questionTextEl);
-        const answers = [val(a0), val(a1), val(a2), val(a3)];
-
-        if (!qText) return alert("Falta texto de la pregunta.");
-        if (answers.some(x => !x)) return alert("Faltan respuestas (A–D).");
-
-        const active = (val(questionActiveEl) === "true");
-
-        await setDoc(
-          doc(db, "modules", moduleId, "classes", classId, "questions", qId),
-          { text: qText, order, correctIndex: idx, active, updatedAt: Date.now() },
-          { merge: true }
-        );
-
-        for (let i = 0; i < 4; i++) {
-          await setDoc(
-            doc(db, "modules", moduleId, "classes", classId, "questions", qId, "answers", String(i)),
-            { text: answers[i], order: i, active: true, updatedAt: Date.now() },
-            { merge: true }
-          );
-        }
-
-        questionIdEl.value = qId;
-        flash(statusMsg, "✅ Pregunta guardada. Puedes agregar otra.");
-        await renderList();
-      } catch (err) {
-        console.error("❌ Error guardando pregunta:", err);
-        flash(statusMsg, "❌ No se pudo guardar. Mira Console (F12).", false);
-      }
-    });
-  }
+  saveBtn?.addEventListener("click", async () => {
+    if (!val(questionTextEl) || !val(a0) || !val(a1) || !val(a2) || !val(a3) || pickedCorrectIndex() === null) {
+      alert("Completa la pregunta, las 4 respuestas y marca la correcta.");
+      return;
+    }
+    if (!val(questionOrderEl) || !val(questionIdEl)) {
+      const snap = await getDocs(collection(db, "modules", moduleId, "classes", classId, "questions"));
+      let max = 0;
+      snap.forEach(d => {
+        const o = Number((d.data() || {}).order) || Number(d.id) || 0;
+        if (o > max) max = o;
+      });
+      const next = String(max + 1);
+      if (!val(questionOrderEl)) questionOrderEl.value = next;
+      if (!val(questionIdEl)) questionIdEl.value = next;
+    }
+    const qId = resolveId(questionIdEl, questionOrderEl);
+    const idx = pickedCorrectIndex();
+    await setDoc(doc(db, "modules", moduleId, "classes", classId, "questions", qId), {
+      text: val(questionTextEl),
+      order: num(questionOrderEl, 1),
+      correctIndex: idx,
+      active: true,
+      updatedAt: Date.now()
+    }, { merge: true });
+    const answers = [val(a0), val(a1), val(a2), val(a3)];
+    for (let i = 0; i < 4; i++) {
+      await setDoc(
+        doc(db, "modules", moduleId, "classes", classId, "questions", qId, "answers", String(i)),
+        { text: answers[i], order: i, active: true, updatedAt: Date.now() },
+        { merge: true }
+      );
+    }
+    questionIdEl.value = "";
+    questionOrderEl.value = "";
+    questionTextEl.value = "";
+    a0.value = ""; a1.value = ""; a2.value = ""; a3.value = "";
+    setRadio(-1);
+    if (correctIndexEl) correctIndexEl.value = "";
+    updateSaveBtnState();
+    flash(statusMsg, "✅ Pregunta guardada. El formulario quedó listo para otra.");
+    saveBtn.textContent = "Guardada ✓";
+    saveBtn.style.background = "#16a34a";
+    saveBtn.style.color = "#fff";
+    setTimeout(() => updateSaveBtnState(), 2500);
+    await renderList();
+  });
 
   document.getElementById("newQuestionBtn")?.addEventListener("click", () => {
     questionIdEl.value = "";
     questionOrderEl.value = "";
     questionTextEl.value = "";
-    if (a0) a0.value = "";
-    if (a1) a1.value = "";
-    if (a2) a2.value = "";
-    if (a3) a3.value = "";
+    a0.value = ""; a1.value = ""; a2.value = ""; a3.value = "";
     setRadio(-1);
     if (correctIndexEl) correctIndexEl.value = "";
+    updateSaveBtnState();
     flash(statusMsg, "Lista para una nueva pregunta.");
   });
 
   await renderList();
 }
 
-
-
-// =====================================================================
-//  PAGE: admin.html  (editor)
-// =====================================================================
 async function initEditorPage() {
   const statusMsg = $("statusMsg");
-
-  const moduleIdEl = $("moduleId");
-  const moduleTitleEl = $("moduleTitle");
-  const moduleOrderEl = $("moduleOrder");
-  const modulePriceEl = $("modulePrice");
-  const moduleActiveEl = $("moduleActive");
-  const saveModuleBtn = $("saveModuleBtn");
-
-  const classIdEl = $("classId");
-  const classTitleEl = $("classTitle");
-  const classOrderEl = $("classOrder");
-  const classVideoUrlEl = $("classVideoUrl");
-  const classPassScoreEl = $("classPassScore");
-  const classActiveEl = $("classActive");
-  const saveClassBtn = $("saveClassBtn");
-  const loadClassBtn = $("loadClassBtn");
-
-  const questionIdEl = $("questionId");
-  const questionOrderEl = $("questionOrder");
-  const correctIndexEl = $("correctIndex");
-  const questionActiveEl = $("questionActive");
-  const saveQuestionBtn = $("saveQuestionBtn");
-  const loadQuestionBtn = $("loadQuestionBtn");
-  const questionTextEl = $("questionText");
-
-  const a0 = $("a0");
-  const a1 = $("a1");
-  const a2 = $("a2");
-  const a3 = $("a3");
-  const saveAnswersBtn = $("saveAnswersBtn");
-
-  const refreshListBtn = $("refreshListBtn");
-  const quickList = $("quickList");
-
-  function syncCorrectIndexFromRadio() {
-    const picked = document.querySelector('input[name="correctPick"]:checked');
-    if (!picked) return null;
-    const idx = parseInt(picked.value, 10);
-    if (![0, 1, 2, 3].includes(idx)) return null;
-    if (correctIndexEl) correctIndexEl.value = String(idx);
-    return idx;
-  }
-  function setRadioFromCorrectIndex(idx) {
-    const radios = document.querySelectorAll('input[name="correctPick"]');
-    radios.forEach(r => (r.checked = (parseInt(r.value, 10) === idx)));
-    if (correctIndexEl) correctIndexEl.value = String(idx);
-  }
-  document.addEventListener("change", (e) => {
-    if (e.target && e.target.name === "correctPick") syncCorrectIndexFromRadio();
-  });
-
-  // --- SAVE MODULE ---
-  saveModuleBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    if (!moduleId) return flash(statusMsg, "Falta ID u Orden del módulo.", false);
-
-    const data = {
-      title: val(moduleTitleEl),
-      order: num(moduleOrderEl, 1),
-      price: num(modulePriceEl, 0),
-      active: val(moduleActiveEl) === "true",
-      updatedAt: Date.now()
-    };
-    await setDoc(doc(db, "modules", moduleId), data, { merge: true });
-    moduleIdEl.value = moduleId;
-    flash(statusMsg, "✅ Módulo guardado.");
-  });
-
-  // --- SAVE CLASS ---
-  saveClassBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    if (!moduleId) return flash(statusMsg, "Falta ID u Orden del módulo.", false);
-
-    const classId = resolveId(classIdEl, classOrderEl);
-    if (!classId) return flash(statusMsg, "Falta ID u Orden de la clase.", false);
-
-    const data = {
-      title: val(classTitleEl),
-      order: num(classOrderEl, 1),
-      videoUrl: val(classVideoUrlEl),
-      passScore: num(classPassScoreEl, 80),
-      active: val(classActiveEl) === "true",
-      updatedAt: Date.now()
-    };
-
-    await setDoc(doc(db, "modules", moduleId, "classes", classId), data, { merge: true });
-    moduleIdEl.value = moduleId;
-    classIdEl.value = classId;
-    flash(statusMsg, "✅ Clase guardada.");
-    await refreshQuickList();
-  });
-
-  // --- LOAD CLASS ---
-  loadClassBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    const classId = resolveId(classIdEl, classOrderEl);
-    if (!moduleId || !classId) return flash(statusMsg, "Pon Módulo y Clase (ID u Orden) para cargar.", false);
-
-    const ref = doc(db, "modules", moduleId, "classes", classId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return flash(statusMsg, "No existe esa clase.", false);
-
-    const d = snap.data();
-    classTitleEl.value = d.title ?? "";
-    classOrderEl.value = d.order ?? "";
-    classVideoUrlEl.value = d.videoUrl ?? "";
-    classPassScoreEl.value = d.passScore ?? 80;
-    classActiveEl.value = String(!!d.active);
-    flash(statusMsg, "✅ Clase cargada.");
-  });
-
-  // --- SAVE QUESTION ---
-  saveQuestionBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    const classId = resolveId(classIdEl, classOrderEl);
-    if (!moduleId || !classId) return flash(statusMsg, "Falta Módulo/Clase.", false);
-
-    const questionId = resolveId(questionIdEl, questionOrderEl);
-    if (!questionId) return flash(statusMsg, "Falta ID u Orden de la pregunta.", false);
-
-    const pickedIdx = syncCorrectIndexFromRadio();
-    if (pickedIdx === null) return alert("Debes seleccionar la respuesta correcta.");
-
-    const qText = val(questionTextEl);
-    if (!qText) return flash(statusMsg, "Falta texto de la pregunta.", false);
-
-    const data = {
-      text: qText,
-      order: num(questionOrderEl, 1),
-      correctIndex: pickedIdx,
-      active: val(questionActiveEl) === "true",
-      updatedAt: Date.now()
-    };
-
-    await setDoc(
-      doc(db, "modules", moduleId, "classes", classId, "questions", questionId),
-      data,
-      { merge: true }
-    );
-
-    questionIdEl.value = questionId;
-    flash(statusMsg, "✅ Pregunta guardada.");
-    await refreshQuickList();
-  });
-
-  // --- SAVE ANSWERS ---
-  saveAnswersBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    const classId = resolveId(classIdEl, classOrderEl);
-    const questionId = resolveId(questionIdEl, questionOrderEl);
-    if (!moduleId || !classId || !questionId) return flash(statusMsg, "Falta Módulo/Clase/Pregunta.", false);
-
-    const answers = [val(a0), val(a1), val(a2), val(a3)];
-    if (answers.some(x => !x)) return flash(statusMsg, "Faltan respuestas (A–D).", false);
-
-    for (let i = 0; i < 4; i++) {
-      await setDoc(
-        doc(db, "modules", moduleId, "classes", classId, "questions", questionId, "answers", String(i)),
-        { text: answers[i], order: i, active: true, updatedAt: Date.now() },
-        { merge: true }
-      );
-    }
-
-    flash(statusMsg, "✅ Respuestas guardadas.");
-    await refreshQuickList();
-  });
-
-  // --- LOAD QUESTION + ANSWERS ---
-  loadQuestionBtn?.addEventListener("click", async () => {
-    const moduleId = resolveId(moduleIdEl, moduleOrderEl);
-    const classId = resolveId(classIdEl, classOrderEl);
-    const questionId = resolveId(questionIdEl, questionOrderEl);
-    if (!moduleId || !classId || !questionId) return flash(statusMsg, "Pon Módulo/Clase/Pregunta para cargar.", false);
-
-    const qRef = doc(db, "modules", moduleId, "classes", classId, "questions", questionId);
-    const qSnap = await getDoc(qRef);
-    if (!qSnap.exists()) return flash(statusMsg, "No existe esa pregunta.", false);
-
-    const q = qSnap.data();
-    questionTextEl.value = q.text ?? "";
-    questionOrderEl.value = q.order ?? "";
-    questionActiveEl.value = String(!!q.active);
-    setRadioFromCorrectIndex(typeof q.correctIndex === "number" ? q.correctIndex : 0);
-
-    const ansCol = collection(db, "modules", moduleId, "classes", classId, "questions", questionId, "answers");
-    const ansSnap = await getDocs(ansCol);
-
-    const map = {};
-    ansSnap.forEach(d => (map[d.id] = d.data()));
-
-    a0.value = map["0"]?.text ?? "";
-    a1.value = map["1"]?.text ?? "";
-    a2.value = map["2"]?.text ?? "";
-    a3.value = map["3"]?.text ?? "";
-
-    flash(statusMsg, "✅ Pregunta + respuestas cargadas.");
-  });
-
-  // --- QUICK LIST ---
-  refreshListBtn?.addEventListener("click", refreshQuickList);
-
-  async function refreshQuickList() {
-    if (!quickList) return;
-    quickList.innerHTML = "<div class='small'>Cargando…</div>";
-
-    const modulesSnap = await getDocs(query(collection(db, "modules"), orderBy("order")));
-    const out = [];
-
-    for (const m of modulesSnap.docs) {
-      const mId = m.id;
-      const mData = m.data() || {};
-      out.push(`<div class="item"><div class="item-title">Módulo ${mId}: ${mData.title ?? ""} <span class="pill">order ${mData.order ?? "-"}</span></div>`);
-
-      const classesSnap = await getDocs(query(collection(db, "modules", mId, "classes"), orderBy("order")));
-      if (classesSnap.empty) {
-        out.push(`<div class="small" style="margin-top:6px;">(sin clases)</div></div>`);
-        continue;
-      }
-
-      for (const c of classesSnap.docs) {
-        const cId = c.id;
-        const cData = c.data() || {};
-        const qSnap = await getDocs(collection(db, "modules", mId, "classes", cId, "questions"));
-        out.push(
-          `<div class="small" style="margin-top:8px;">
-            └ Clase ${cId}: ${cData.title ?? ""} (preguntas: ${qSnap.size})
-          </div>`
-        );
-      }
-
-      out.push(`</div>`);
-    }
-
-    quickList.innerHTML = out.join("") || "<div class='small'>(sin módulos)</div>";
-  }
-
-  const urlModuleId = getParam("moduleId");
-  const urlClassId = getParam("classId");
-  if (urlModuleId) moduleIdEl.value = urlModuleId;
-  if (urlClassId) classIdEl.value = urlClassId;
-
-  if (urlModuleId && urlClassId) {
-    try { await loadClassBtn.click(); } catch (e) { }
-  }
-
-  try { await refreshListBtn.click(); } catch (e) { }
 }
 
-
-// =====================================================================
-//  BOOT
-// =====================================================================
 onAuthStateChanged(auth, async (user) => {
   const ok = await requireAdmin(user);
   if (!ok) return;
-
-  const authStatus = document.getElementById("authStatus");
-  if (authStatus) authStatus.textContent = `Sesión: ${user.email}`;
-
+  const el = document.getElementById("authStatus");
+  if (el) el.textContent = `Sesión: ${user.email}`;
   if (isDashboardPage) await initDashboardPage();
   if (isModulesPage) await initModulesPage();
   if (isClassesPage) await initClassesPage();

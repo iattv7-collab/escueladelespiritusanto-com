@@ -193,3 +193,15 @@ select, option {
   background: #fff;
   color: #0f172a;
 }
+
+.card.saved {
+  outline: 3px solid #16a34a;
+  background: #f0fdf4;
+}
+
+.btn-primary:disabled {
+  background: #94a3b8 !important;
+  color: #fff !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}

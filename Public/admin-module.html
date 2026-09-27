@@ -1,3 +1,4 @@
+<!-- Public/admin-module.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -33,10 +34,11 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="editCard">
       <div class="row" style="justify-content:space-between;">
         <div>
-          <div class="small">Agregar / editar módulo</div>
+          <div class="small" id="formTitle">Formulario de módulo</div>
+          <div class="small">Editar no abre otra página. Llena este recuadro de arriba. Luego pulsa Guardar módulo.</div>
         </div>
         <div class="small" id="statusMsg"></div>
       </div>
@@ -59,10 +61,10 @@
           <input id="modulePrice" type="number" placeholder="25" />
         </div>
         <div>
-          <label>Activo</label>
+          <label>Visible</label>
           <select id="moduleActive">
-            <option value="true">true</option>
-            <option value="false">false</option>
+            <option value="true">Sí</option>
+            <option value="false">No</option>
           </select>
         </div>
       </div>
@@ -72,7 +74,7 @@
       </div>
 
       <div class="small" style="margin-top:10px;">
-        Tip: si dejas el ID en blanco, se usará el “Orden” como ID.
+        Editar = cargar aquí arriba. Ver clases = entrar a los videos de ese módulo.
       </div>
     </div>
 

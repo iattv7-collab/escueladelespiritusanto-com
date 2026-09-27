@@ -182,3 +182,14 @@ a.wa, td a {
   min-width: 72px;
   width: auto;
 }
+
+
+.card.editing {
+  outline: 3px solid #f59e0b;
+  background: #fffbeb;
+}
+
+select, option {
+  background: #fff;
+  color: #0f172a;
+}

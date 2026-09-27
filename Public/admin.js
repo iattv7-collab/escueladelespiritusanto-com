@@ -37,6 +37,13 @@ function resolveId(idEl, orderEl) {
   const o = val(orderEl);
   return o ? o.toString() : "";
 }
+function focusEditCard() {
+  const card = document.getElementById("editCard");
+  if (!card) return;
+  card.classList.add("editing");
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function flash(el, text, ok = true) {
   if (!el) return;
 
@@ -371,7 +378,14 @@ async function initModulesPage() {
         moduleOrderEl.value = m.order ?? "";
         modulePriceEl.value = m.price ?? 0;
         moduleActiveEl.value = String(!!m.active);
-        flash(statusMsg, "✅ Módulo cargado para editar.");
+        const card = document.getElementById("editCard");
+        const formTitle = document.getElementById("formTitle");
+        if (formTitle) formTitle.textContent = "Editando este módulo (arriba)";
+        if (card) {
+          card.classList.add("editing");
+          card.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        flash(statusMsg, "✅ Cargado arriba. Cambia el título o el precio y pulsa Guardar módulo.");
       });
     });
 
@@ -491,7 +505,8 @@ async function initClassesPage() {
         classVideoUrlEl.value = c.videoUrl ?? "";
         classPassScoreEl.value = c.passScore ?? 80;
         classActiveEl.value = String(!!c.active);
-        flash(statusMsg, "✅ Clase cargada para editar.");
+        focusEditCard();
+        flash(statusMsg, "✅ Clase cargada arriba. Cambia el video o el título y pulsa Guardar clase.");
       });
     });
 
@@ -698,7 +713,8 @@ async function initQuestionsPage() {
           a2.value = map["2"]?.text ?? "";
           a3.value = map["3"]?.text ?? "";
 
-          flash(statusMsg, "✅ Pregunta cargada.");
+          focusEditCard();
+          flash(statusMsg, "✅ Pregunta cargada arriba. Edítala y pulsa Guardar pregunta.");
         } catch (err) {
           console.error("❌ Error cargando pregunta:", err);
           flash(statusMsg, "❌ No se pudo cargar. Mira Console (F12).", false);

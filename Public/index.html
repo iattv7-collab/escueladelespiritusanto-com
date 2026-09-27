@@ -361,25 +361,7 @@
     });
   </script>
 
-  <script src="./content.js"></script>
 
-  <script>
-    const c = window.ESCUELA_CONTENT || {};
-
-    if (c.siteTitle && c.ministryName) {
-      document.title = `${c.siteTitle} – ${c.ministryName}`;
-    }
-
-    const footerEl = document.querySelector("footer");
-    if (footerEl && c.footerText) {
-      const existingBtn = footerEl.querySelector(".footer-btn");
-      footerEl.innerHTML = "";
-      if (existingBtn) footerEl.appendChild(existingBtn);
-      const textSpan = document.createElement("div");
-      textSpan.innerHTML = c.footerText;
-      footerEl.appendChild(textSpan);
-    }
-  </script>
 
   <!-- Pause / resume BOTH videos when tab inactive -->
   <script>

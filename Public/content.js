@@ -1,4 +1,6 @@
+// Legacy all-in-one editor. Canonical admin is admin.js + admin-*.html
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { FIREBASE_CONFIG, ADMIN_EMAILS } from "./js/firebase-config.js";
 import {
   getAuth,
   onAuthStateChanged,
@@ -15,14 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 // ✅ Your Firebase config (same project you already use)
-const firebaseConfig = {
-  apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
-  authDomain: "escuela-ees.firebaseapp.com",
-  projectId: "escuela-ees",
-  storageBucket: "escuela-ees.firebasestorage.app",
-  messagingSenderId: "514513764908",
-  appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
-};
+const firebaseConfig = FIREBASE_CONFIG;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

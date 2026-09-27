@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Restablecer contraseña ▢ La Escuela del Espíritu Santo</title>
+  <title>Restablecer contraseña – La Escuela del Espíritu Santo</title>
   <style>
     body {
       margin: 0;
@@ -94,22 +94,16 @@
 
     <div id="messageBox" class="message"></div>
 
-    <a href="login.html">← Volver a iniciar sesión</a>
+    <a href="./login.html">← Volver a iniciar sesión</a>
   </div>
 
   <!-- ✅ UPDATED FIREBASE ONLY -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { FIREBASE_CONFIG } from "./js/firebase-config.js";
     import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
-      authDomain: "escuela-ees.firebaseapp.com",
-      projectId: "escuela-ees",
-      storageBucket: "escuela-ees.firebasestorage.app",
-      messagingSenderId: "514513764908",
-      appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
-    };
+    const firebaseConfig = FIREBASE_CONFIG;
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);

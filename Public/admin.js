@@ -1,5 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { FIREBASE_CONFIG, ADMIN_EMAILS } from "./js/firebase-config.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import {
   getFirestore,
   doc,
@@ -10,25 +11,17 @@ import {
   query,
   orderBy,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 
 // 🔥 escuela-ees
-const firebaseConfig = {
-  apiKey: "AIzaSyCJVZmCuM8bekhbG1AFMAcT3O8pncvoFcQ",
-  authDomain: "escuela-ees.firebaseapp.com",
-  projectId: "escuela-ees",
-  storageBucket: "escuela-ees.firebasestorage.app",
-  messagingSenderId: "514513764908",
-  appId: "1:514513764908:web:56f9ca64edbe79f1f14789"
-};
+const firebaseConfig = FIREBASE_CONFIG;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ✅ Only these emails can use admin
-const ADMIN_EMAILS = ["iattv7@gmail.com"];
 
 // ---------- helpers ----------
 function $(id) { return document.getElementById(id); }

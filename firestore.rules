@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'iattv7@gmail.com';
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /userProgress/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /modules/{moduleId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+
+      match /classes/{classId} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+
+        match /questions/{questionId} {
+          allow read: if signedIn();
+          allow write: if isAdmin();
+
+          match /answers/{answerId} {
+            allow read: if signedIn();
+            allow write: if isAdmin();
+          }
+        }
+      }
+    }
+  }
+}
